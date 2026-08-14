@@ -38,7 +38,7 @@ async def test_find_element_success():
     session._client.find_element.return_value = el
     result = await find_element(strategy="id", selector="foo", context="chrome", timeout=5)
     assert result["element_id"] == "elem-1"
-    session._client.set_search_timeout.assert_called_once_with(5000)
+    assert session._client.timeout.implicit == 5
 
 
 @pytest.mark.asyncio

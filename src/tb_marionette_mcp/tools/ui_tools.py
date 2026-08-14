@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import time
 from typing import Any
 
@@ -35,7 +36,7 @@ async def find_element(
     session = MarionetteSession.get()
 
     def _find() -> str:
-        session.client.set_search_timeout(int(timeout * 1000))
+        session.client.timeout.implicit = timeout
         by = _STRATEGY_MAP[strategy]
         try:
             el = session.client.find_element(by, selector)
@@ -55,7 +56,7 @@ async def find_elements(
     session = MarionetteSession.get()
 
     def _find() -> list[str]:
-        session.client.set_search_timeout(int(timeout * 1000))
+        session.client.timeout.implicit = timeout
         by = _STRATEGY_MAP[strategy]
         return [str(el.id) for el in session.client.find_elements(by, selector)]
 
@@ -128,14 +129,22 @@ async def list_windows() -> list[dict[str, str]]:
 
     def _list() -> list[dict[str, str]]:
         client = session.client
-        original = client.current_window_handle
+        try:
+            original = client.current_window_handle
+        except Exception:
+            original = None
         out: list[dict[str, str]] = []
         for h in client.window_handles:
-            client.switch_to_window(h)
-            out.append(
-                {"handle": h, "title": client.title, "url": client.get_url()}
-            )
-        client.switch_to_window(original)
+            try:
+                client.switch_to_window(h)
+                out.append(
+                    {"handle": h, "title": client.title, "url": client.get_url()}
+                )
+            except Exception:
+                out.append({"handle": h, "title": "", "url": ""})
+        if original is not None:
+            with contextlib.suppress(Exception):
+                client.switch_to_window(original)
         return out
 
     return await session.call(_list)

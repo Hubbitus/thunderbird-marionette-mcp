@@ -20,7 +20,7 @@ async def execute_script(
     session = MarionetteSession.get()
 
     def _exec() -> Any:
-        session.client.set_script_timeout(int(timeout * 1000))
+        session.client.timeout.script = timeout
         if async_:
             return session.client.execute_async_script(script, script_args=args)
         return session.client.execute_script(script, script_args=args)
