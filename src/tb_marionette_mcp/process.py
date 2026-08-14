@@ -62,9 +62,10 @@ def spawn(profile: str, port: int) -> int:
         [
             tb_bin,
             "--marionette",
+            "--remote-allow-system-access",
             "--marionette-port",
             str(port),
-            "-P",
+            "--profile",
             profile,
             "-no-remote",
         ],

@@ -125,15 +125,22 @@ async def is_displayed(element_id: str) -> dict[str, bool]:
 
 
 async def list_windows() -> list[dict[str, str]]:
+    """List all TB windows.
+
+    For chrome-only apps like Thunderbird (messenger.xhtml), the WebDriver
+    `window_handles` API returns `[]` because there are no content browser
+    tabs. Fall back to enumerating `Services.wm` in chrome context, which
+    returns actual XUL windows (messenger, compose, etc.).
+    """
     session = MarionetteSession.get()
 
     def _list() -> list[dict[str, str]]:
         client = session.client
+        out: list[dict[str, str]] = []
         try:
             original = client.current_window_handle
         except Exception:
             original = None
-        out: list[dict[str, str]] = []
         for h in client.window_handles:
             try:
                 client.switch_to_window(h)
@@ -145,9 +152,27 @@ async def list_windows() -> list[dict[str, str]]:
         if original is not None:
             with contextlib.suppress(Exception):
                 client.switch_to_window(original)
-        return out
+        if out:
+            return out
+        # Fallback: enumerate chrome windows via Services.wm
+        wins = client.execute_script(
+            "let out = [];"
+            "let e = Services.wm.getEnumerator(null);"
+            "while (e.hasMoreElements()) {"
+            "  let w = e.getNext();"
+            "  out.push({"
+            "    handle: String(w.docShell.browsingContext.id),"
+            "    title: String(w.document.title || ''),"
+            "    url: String(w.location.href || '')"
+            "  });"
+            "} return out;"
+        )
+        return [
+            {"handle": str(w["handle"]), "title": str(w["title"]), "url": str(w["url"])}
+            for w in (wins or [])
+        ]
 
-    return await session.call(_list)
+    return await session.call(_list, ctx="chrome")
 
 
 async def switch_to_window(handle: str) -> dict[str, Any]:

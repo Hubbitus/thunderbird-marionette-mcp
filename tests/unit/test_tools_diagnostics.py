@@ -108,3 +108,48 @@ async def test_screenshot_of_element():
     assert result["data_base64"] == "b64data"
     call = session._client.screenshot.call_args
     assert call.kwargs["element"] is not None
+
+
+@pytest.mark.asyncio
+async def test_screenshot_falls_back_to_chrome_canvas():
+    session = MarionetteSession.get()
+    session._client.current_context = "content"
+    session._client.screenshot.side_effect = Exception("Browsing context discarded")
+    session._client.execute_script.return_value = "canvasb64"
+    result = await screenshot(element_id=None, format="png", full=False)
+    assert result["data_base64"] == "canvasb64"
+    # set_context was called: chrome, then restored to content
+    ctx_calls = [c.args[0] for c in session._client.set_context.call_args_list]
+    assert ctx_calls == ["chrome", "content"]
+
+
+@pytest.mark.asyncio
+async def test_get_window_title_fallback_uses_services_wm():
+    session = MarionetteSession.get()
+    type(session._client).title = property(
+        lambda self: (_ for _ in ()).throw(Exception("no window"))
+    )
+    session._client.execute_script.return_value = "Inbox - TB"
+    result = await get_window_title()
+    assert result["title"] == "Inbox - TB"
+    assert "Services.wm" in session._client.execute_script.call_args.args[0]
+
+
+@pytest.mark.asyncio
+async def test_get_current_url_fallback_uses_services_wm():
+    session = MarionetteSession.get()
+    session._client.get_url.side_effect = Exception("no window")
+    session._client.execute_script.return_value = "chrome://messenger/content/messenger.xhtml"
+    result = await get_current_url()
+    assert result["url"] == "chrome://messenger/content/messenger.xhtml"
+
+
+@pytest.mark.asyncio
+async def test_get_page_source_fallback_serializes_document_element():
+    session = MarionetteSession.get()
+    type(session._client).page_source = property(
+        lambda self: (_ for _ in ()).throw(Exception("no window"))
+    )
+    session._client.execute_script.return_value = "<xul/>"
+    result = await get_page_source(context="chrome")
+    assert result["source"] == "<xul/>"

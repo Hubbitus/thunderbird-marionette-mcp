@@ -38,9 +38,10 @@ def test_spawn_returns_pid():
     assert pid == 12345
     args = popen_mock.call_args.args[0]
     assert "--marionette" in args
+    assert "--remote-allow-system-access" in args
     assert "--marionette-port" in args
     assert "2828" in args
-    assert "-P" in args
+    assert "--profile" in args
     assert "test-profile" in args
     assert "-no-remote" in args
 

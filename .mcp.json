@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "tb-marionette": {
+      "type": "stdio",
+      "command": "/home/pasha/@Projects/@Hubbitus/@public/thunderbird-marionette-mcp/.venv/bin/tb-marionette-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
