@@ -73,5 +73,5 @@ def main() -> None:
     server.run(transport="stdio")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

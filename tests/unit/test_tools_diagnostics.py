@@ -76,3 +76,35 @@ async def test_marionette_log_unavailable():
         result = await get_marionette_log()
     assert result["available"] is False
     assert result["log"] == ""
+
+
+@pytest.mark.asyncio
+async def test_console_logs_clear_calls_reset():
+    session = MarionetteSession.get()
+    session._client.execute_script.return_value = []
+    await get_console_logs(clear=True, level=None)
+    # execute_script called twice: fetch + Services.console.reset()
+    assert session._client.execute_script.call_count == 2
+    reset_call = session._client.execute_script.call_args_list[1]
+    assert "Services.console.reset" in reset_call.args[0]
+
+
+@pytest.mark.asyncio
+async def test_marionette_log_available():
+    with patch("tb_marionette_mcp.tools.diagnostic_tools.ProcessRegistry.any_pid",
+               return_value=1234), \
+         patch("tb_marionette_mcp.tools.diagnostic_tools.stderr_tail",
+               return_value="stderr content"):
+        result = await get_marionette_log()
+    assert result["available"] is True
+    assert result["log"] == "stderr content"
+
+
+@pytest.mark.asyncio
+async def test_screenshot_of_element():
+    session = MarionetteSession.get()
+    session._client.screenshot.return_value = "b64data"
+    result = await screenshot(element_id="elem-1", format="png", full=False)
+    assert result["data_base64"] == "b64data"
+    call = session._client.screenshot.call_args
+    assert call.kwargs["element"] is not None

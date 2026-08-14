@@ -84,3 +84,23 @@ async def test_send_hotkey_dispatches_actions():
     actions_ctx.key_up.return_value = actions_ctx
     await send_hotkey(chord="Ctrl+Shift+N")
     actions_ctx.perform.assert_called_once()
+
+
+def test_parse_chord_unknown_modifier():
+    with pytest.raises(InvalidArgumentError, match="unknown modifier"):
+        parse_chord("Nope+A")
+
+
+def test_parse_chord_unknown_multichar_key():
+    with pytest.raises(InvalidArgumentError, match="unknown key"):
+        parse_chord("foobar")
+
+
+def test_element_helper_constructs_webelement():
+    from marionette_driver.marionette import WebElement
+
+    from tb_marionette_mcp.tools.key_tools import _element
+    client = MagicMock()
+    el = _element(client, "elem-99")
+    assert isinstance(el, WebElement)
+    assert el.id == "elem-99"

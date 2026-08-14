@@ -56,3 +56,12 @@ async def test_status():
                return_value={"running": True, "pid": 42, "port": 2828, "connected": True}):
         result = await thunderbird_status()
     assert result["running"] is True
+
+
+@pytest.mark.asyncio
+async def test_terminate_no_pid_raises():
+    from tb_marionette_mcp.errors import InvalidArgumentError
+    with patch("tb_marionette_mcp.tools.process_tools.ProcessRegistry.any_pid",
+               return_value=None), \
+         pytest.raises(InvalidArgumentError):
+        await thunderbird_terminate(pid=None)

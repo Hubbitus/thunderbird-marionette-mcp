@@ -3,12 +3,14 @@ from unittest.mock import MagicMock
 import pytest
 
 from tb_marionette_mcp.errors import ElementNotFoundError
+from tb_marionette_mcp.errors import TimeoutError as TbTimeoutError
 from tb_marionette_mcp.session import MarionetteSession
 from tb_marionette_mcp.tools.ui_tools import (
     click,
     find_element,
     find_elements,
     get_attribute,
+    get_property,
     get_text,
     is_displayed,
     list_windows,
@@ -180,3 +182,84 @@ async def test_wait_for_element_returns_id():
         strategy="css", selector="#z", context="chrome", timeout=1, visible=True
     )
     assert result["element_id"] == "z"
+
+
+@pytest.mark.asyncio
+async def test_get_property():
+    el = MagicMock()
+    el.get_property.return_value = {"nested": 1}
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(
+            "tb_marionette_mcp.tools.ui_tools._element",
+            lambda _client, _id: el,
+        )
+        result = await get_property(element_id="x", name="dataset")
+    assert result["value"] == {"nested": 1}
+
+
+@pytest.mark.asyncio
+async def test_list_windows_current_handle_raises():
+    session = MarionetteSession.get()
+    type(session._client).current_window_handle = property(
+        lambda self: (_ for _ in ()).throw(Exception("no window"))
+    )
+    session._client.window_handles = []
+    result = await list_windows()
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_list_windows_switch_fails_returns_empty_meta():
+    session = MarionetteSession.get()
+    session._client.window_handles = ["h1"]
+    session._client.current_window_handle = "h1"
+    session._client.switch_to_window.side_effect = Exception("dead window")
+    result = await list_windows()
+    assert result == [{"handle": "h1", "title": "", "url": ""}]
+
+
+@pytest.mark.asyncio
+async def test_wait_for_element_invisible_returns_when_visible_false():
+    session = MarionetteSession.get()
+    el = MagicMock()
+    el.id = "inv"
+    session._client.find_element.return_value = el
+    el.is_displayed.return_value = False
+    result = await wait_for_element(
+        strategy="css", selector="#inv", context="chrome", timeout=1, visible=False
+    )
+    assert result["element_id"] == "inv"
+
+
+@pytest.mark.asyncio
+async def test_wait_for_element_retries_then_times_out():
+    from marionette_driver.errors import NoSuchElementException
+
+    session = MarionetteSession.get()
+    session._client.find_element.side_effect = NoSuchElementException("no")
+    with pytest.raises(TbTimeoutError):
+        await wait_for_element(
+            strategy="css", selector="#gone", context="chrome",
+            timeout=0.4, visible=True,
+        )
+
+
+@pytest.mark.asyncio
+async def test_wait_for_element_invisible_loops_then_times_out():
+    session = MarionetteSession.get()
+    el = MagicMock()
+    el.id = "hidden"
+    el.is_displayed.return_value = False
+    session._client.find_element.return_value = el
+    # _element is used by both find (implicit via client) and is_displayed;
+    # patch it so is_displayed sees an element that reports invisible.
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(
+            "tb_marionette_mcp.tools.ui_tools._element",
+            lambda _client, _id: el,
+        )
+        with pytest.raises(TbTimeoutError):
+            await wait_for_element(
+                strategy="css", selector="#hidden", context="chrome",
+                timeout=0.4, visible=True,
+            )
