@@ -1,8 +1,8 @@
-"""FastMCP server entry point and tool registration."""
+"""MCP server entry point and tool registration."""
 
 from __future__ import annotations
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from tb_marionette_mcp.logging_ import configure_logging, get_logger
 from tb_marionette_mcp.tools import (
@@ -15,9 +15,9 @@ from tb_marionette_mcp.tools import (
 )
 
 
-def build_server() -> FastMCP:
-    """Build and register all 30 tools into FastMCP server."""
-    server = FastMCP("tb-marionette-mcp")
+def build_server() -> MCPServer:
+    """Build and register all 30 tools into MCPServer."""
+    server: MCPServer = MCPServer("tb-marionette-mcp")
 
     # Process tools (3)
     server.add_tool(process_tools.thunderbird_launch)
@@ -65,7 +65,7 @@ def build_server() -> FastMCP:
 
 
 def main() -> None:
-    """Start FastMCP server with stdio transport."""
+    """Start MCP server with stdio transport."""
     configure_logging()
     log = get_logger(__name__)
     log.info("startup")

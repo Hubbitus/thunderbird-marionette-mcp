@@ -11,7 +11,7 @@ requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Pavel Alexeev", email = "Pahan@hubbitus.info" }]
 dependencies = [
-    "mcp>=1.12,<2.0",
+    "mcp>=2.0,<3.0",
     "marionette-driver>=3.7.1,<4.0",
     "pydantic>=2.6,<3.0",
     "structlog>=24.1",
@@ -61,8 +61,11 @@ ignore_missing_imports = true
 asyncio_mode = "auto"
 addopts = "-ra --strict-markers"
 testpaths = ["tests"]
+# Narrowly silence 2 third-party warnings from Mozilla packages (mozinfo, mozrunner).
+# Both are at latest PyPI versions; fixing requires upstream PRs to mozilla-central.
+# - mozinfo 1.2.3: uses deprecated distro.linux_distribution()
+# - mozrunner 8.4.0: imports telnetlib (removed in Python 3.13)
 filterwarnings = [
     "ignore:distro.linux_distribution.*:DeprecationWarning:mozinfo",
     "ignore:'telnetlib' is deprecated.*:DeprecationWarning:mozrunner.devices.emulator",
-    "ignore:Field 'lifespan' has an incomplete definition.*:UserWarning:pydantic_settings.sources.utils",
 ]
