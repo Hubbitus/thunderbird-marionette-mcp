@@ -54,10 +54,6 @@ module = "marionette_driver.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "tb_marionette_mcp.__main__"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
 module = "structlog.*"
 ignore_missing_imports = true
 
