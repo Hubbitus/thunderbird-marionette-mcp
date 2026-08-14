@@ -23,8 +23,8 @@ tb-marionette-mcp = "tb_marionette_mcp.__main__:main"
 [project.urls]
 Homepage = "https://github.com/Hubbitus/thunderbird-marionette-mcp"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "pytest-cov>=5.0",
@@ -61,3 +61,8 @@ ignore_missing_imports = true
 asyncio_mode = "auto"
 addopts = "-ra --strict-markers"
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore:distro.linux_distribution.*:DeprecationWarning:mozinfo",
+    "ignore:'telnetlib' is deprecated.*:DeprecationWarning:mozrunner.devices.emulator",
+    "ignore:Field 'lifespan' has an incomplete definition.*:UserWarning:pydantic_settings.sources.utils",
+]
