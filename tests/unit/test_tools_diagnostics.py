@@ -112,15 +112,22 @@ async def test_screenshot_of_element():
 
 @pytest.mark.asyncio
 async def test_screenshot_falls_back_to_chrome_canvas():
+    from contextlib import contextmanager
+
     session = MarionetteSession.get()
-    session._client.current_context = "content"
     session._client.screenshot.side_effect = Exception("Browsing context discarded")
     session._client.execute_script.return_value = "canvasb64"
+    used: list[str] = []
+
+    @contextmanager
+    def _using_context(name: str):
+        used.append(name)
+        yield
+
+    session._client.using_context = _using_context
     result = await screenshot(element_id=None, format="png", full=False)
     assert result["data_base64"] == "canvasb64"
-    # set_context was called: chrome, then restored to content
-    ctx_calls = [c.args[0] for c in session._client.set_context.call_args_list]
-    assert ctx_calls == ["chrome", "content"]
+    assert used == ["chrome"]
 
 
 @pytest.mark.asyncio

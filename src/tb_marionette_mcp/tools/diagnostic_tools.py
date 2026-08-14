@@ -63,13 +63,8 @@ async def screenshot(
         try:
             return cast(str, client.screenshot(format=format, full=full))
         except Exception:
-            prev = client.current_context
-            client.set_context("chrome")
-            try:
-                data = cast(str, client.execute_script(_CHROME_SCREENSHOT_SCRIPT))
-            finally:
-                client.set_context(prev)
-            return data
+            with client.using_context("chrome"):
+                return cast(str, client.execute_script(_CHROME_SCREENSHOT_SCRIPT))
 
     data = await session.call(_shot)
     return {"data_base64": data, "format": format}
