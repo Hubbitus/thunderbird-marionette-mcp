@@ -13,7 +13,10 @@ from tb_marionette_mcp.process import _probe_port
 from tb_marionette_mcp.session import MarionetteSession
 
 # Absolute path so --CreateProfile works regardless of cwd
-PROFILE_DIR = Path(__file__).parents[2] / ".tmp" / "tb-profile"
+PROFILE_DIR = Path(
+    os.environ.get("TB_MCP_TEST_PROFILE")
+    or (Path(__file__).parents[2] / ".tmp" / "tb-profile")
+).resolve()
 PORT = int(os.environ.get("TB_MCP_TEST_PORT", "2828"))
 
 

@@ -13,6 +13,7 @@ Usage:
   ./run.tests.sh --lint          # ruff + mypy first, then full suite
   ./run.tests.sh -u --lint       # ruff + mypy + unit tests
   ./run.tests.sh --with-gui      # show TB window (no -headless, skip xvfb)
+  ./run.tests.sh -p PATH         # use existing TB profile at PATH (--profile PATH)
   ./run.tests.sh -- -k pattern   # pass extra args to pytest after --
 EOF
 }
@@ -20,6 +21,7 @@ EOF
 UNIT_ONLY=0
 RUN_LINT=0
 WITH_GUI=0
+PROFILE=""
 PYTEST_EXTRA=()
 
 while [[ $# -gt 0 ]]; do
@@ -34,6 +36,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --with-gui)
             WITH_GUI=1
+            shift
+            ;;
+        -p|--profile)
+            PROFILE="$2"
+            shift 2
+            ;;
+        --profile=*)
+            PROFILE="${1#*=}"
             shift
             ;;
         -h|--help)
@@ -67,6 +77,10 @@ PYTEST_ARGS+=("${PYTEST_EXTRA[@]}")
 
 if [[ $WITH_GUI -eq 1 ]]; then
     export TB_TEST_HEADLESS=0
+fi
+
+if [[ -n "$PROFILE" ]]; then
+    export TB_MCP_TEST_PROFILE="$PROFILE"
 fi
 
 echo "=== pytest ${PYTEST_ARGS[*]} ==="
