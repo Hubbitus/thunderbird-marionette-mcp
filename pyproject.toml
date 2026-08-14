@@ -57,6 +57,10 @@ ignore_missing_imports = true
 module = "tb_marionette_mcp.__main__"
 ignore_errors = true
 
+[[tool.mypy.overrides]]
+module = "structlog.*"
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 addopts = "-ra --strict-markers"
