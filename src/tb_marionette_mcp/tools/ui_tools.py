@@ -176,10 +176,35 @@ async def list_windows() -> list[dict[str, str]]:
 
 
 async def switch_to_window(handle: str) -> dict[str, Any]:
+    """Switch to a window by handle.
+
+    WebDriver `switch_to_window` accepts only handles from `window_handles`,
+    which is empty for chrome-only apps like TB. `list_windows` falls back to
+    `Services.wm` and returns `docShell.browsingContext.id` as handle. For
+    those, focus the corresponding XUL window via chrome-context JS.
+    """
     session = MarionetteSession.get()
 
     def _switch() -> None:
-        session.client.switch_to_window(handle)
+        client = session.client
+        try:
+            if handle in client.window_handles:
+                client.switch_to_window(handle)
+                return
+        except Exception:
+            pass
+        with client.using_context("chrome"):
+            client.execute_script(
+                "let target = arguments[0];"
+                "let e = Services.wm.getEnumerator(null);"
+                "while (e.hasMoreElements()) {"
+                "  let w = e.getNext();"
+                "  if (String(w.docShell.browsingContext.id) === target) {"
+                "    w.focus(); return true;"
+                "  }"
+                "} return false;",
+                script_args=[handle],
+            )
 
     await session.call(_switch)
     return {}

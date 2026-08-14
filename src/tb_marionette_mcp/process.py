@@ -7,6 +7,7 @@ import os
 import shutil
 import socket
 import subprocess
+import tempfile
 import time
 from typing import Any, ClassVar
 
@@ -15,18 +16,31 @@ from tb_marionette_mcp.errors import LaunchError
 
 class ProcessRegistry:
     _processes: ClassVar[dict[int, subprocess.Popen[bytes]]] = {}
+    _stderr_paths: ClassVar[dict[int, str]] = {}
 
     @classmethod
-    def register(cls, popen: subprocess.Popen[bytes]) -> None:
+    def register(
+        cls, popen: subprocess.Popen[bytes], stderr_path: str | None = None
+    ) -> None:
         cls._processes[popen.pid] = popen
+        if stderr_path is not None:
+            cls._stderr_paths[popen.pid] = stderr_path
 
     @classmethod
     def get(cls, pid: int) -> subprocess.Popen[bytes] | None:
         return cls._processes.get(pid)
 
     @classmethod
+    def stderr_path(cls, pid: int) -> str | None:
+        return cls._stderr_paths.get(pid)
+
+    @classmethod
     def unregister(cls, pid: int) -> None:
         cls._processes.pop(pid, None)
+        path = cls._stderr_paths.pop(pid, None)
+        if path is not None:
+            with contextlib.suppress(OSError):
+                os.unlink(path)
 
     @classmethod
     def any_pid(cls) -> int | None:
@@ -41,6 +55,10 @@ class ProcessRegistry:
             with contextlib.suppress(Exception):
                 p.kill()
         cls._processes.clear()
+        for path in cls._stderr_paths.values():
+            with contextlib.suppress(OSError):
+                os.unlink(path)
+        cls._stderr_paths.clear()
 
 
 def _probe_port(host: str, port: int, timeout: float = 0.5) -> bool:
@@ -58,21 +76,25 @@ def spawn(profile: str, port: int) -> int:
             "Thunderbird binary not found; set TB_MCP_BINARY or install thunderbird",
             details={"which_result": None},
         )
-    popen = subprocess.Popen(
-        [
-            tb_bin,
-            "--marionette",
-            "--remote-allow-system-access",
-            "--marionette-port",
-            str(port),
-            "--profile",
-            profile,
-            "-no-remote",
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-    )
-    ProcessRegistry.register(popen)
+    stderr_fd, stderr_path = tempfile.mkstemp(prefix="tb-mcp-stderr-", suffix=".log")
+    try:
+        popen = subprocess.Popen(
+            [
+                tb_bin,
+                "--marionette",
+                "--remote-allow-system-access",
+                "--marionette-port",
+                str(port),
+                "--profile",
+                profile,
+                "-no-remote",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=stderr_fd,
+        )
+    finally:
+        os.close(stderr_fd)
+    ProcessRegistry.register(popen, stderr_path=stderr_path)
     return popen.pid
 
 
@@ -112,12 +134,16 @@ def status(port: int, host: str = "127.0.0.1") -> dict[str, Any]:
 
 
 def stderr_tail(pid: int, max_bytes: int = 65536) -> str:
-    popen = ProcessRegistry.get(pid)
-    if popen is None or popen.stderr is None:
+    path = ProcessRegistry.stderr_path(pid)
+    if path is None:
         return ""
     try:
-        popen.stderr.seek(-max_bytes, os.SEEK_END)
+        with open(path, "rb") as f:
+            try:
+                f.seek(-max_bytes, os.SEEK_END)
+            except OSError:
+                f.seek(0)
+            raw: bytes = f.read()
     except OSError:
-        popen.stderr.seek(0)
-    raw: bytes = popen.stderr.read()
+        return ""
     return raw.decode(errors="replace")

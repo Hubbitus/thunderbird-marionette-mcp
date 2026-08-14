@@ -46,10 +46,19 @@ async def test_call_wraps_wire_error():
 
 
 @pytest.mark.asyncio
-async def test_call_with_context_switches_and_restores():
+async def test_call_with_context_uses_using_context():
+    from contextlib import contextmanager
+
     session = MarionetteSession.get()
     client = MagicMock()
-    client.current_context = "content"
+    used: list[str] = []
+
+    @contextmanager
+    def _using_context(name: str):
+        used.append(name)
+        yield
+
+    client.using_context = _using_context
     session._client = client
     session._connected = True
 
@@ -58,8 +67,22 @@ async def test_call_with_context_switches_and_restores():
 
     result = await session.call(op, ctx="chrome")
     assert result == "ok"
-    assert client.set_context.call_args_list[0].args[0] == "chrome"
-    assert client.set_context.call_args_list[-1].args[0] == "content"
+    assert used == ["chrome"]
+
+
+@pytest.mark.asyncio
+async def test_call_without_context_skips_using_context():
+    session = MarionetteSession.get()
+    client = MagicMock()
+    session._client = client
+    session._connected = True
+
+    def op():
+        return "ok"
+
+    result = await session.call(op)
+    assert result == "ok"
+    client.using_context.assert_not_called()
 
 
 def test_port_open_returns_false_on_oserror():

@@ -147,8 +147,51 @@ async def test_list_windows():
 @pytest.mark.asyncio
 async def test_switch_to_window():
     session = MarionetteSession.get()
+    session._client.window_handles = ["abc"]
     await switch_to_window(handle="abc")
     session._client.switch_to_window.assert_called_once_with("abc")
+
+
+@pytest.mark.asyncio
+async def test_switch_to_window_falls_back_when_window_handles_raises():
+    from contextlib import contextmanager
+
+    session = MarionetteSession.get()
+    type(session._client).window_handles = property(
+        lambda self: (_ for _ in ()).throw(Exception("no window"))
+    )
+    used: list[str] = []
+
+    @contextmanager
+    def _using_context(name: str):
+        used.append(name)
+        yield
+
+    session._client.using_context = _using_context
+    await switch_to_window(handle="7")
+    session._client.execute_script.assert_called_once()
+    assert used == ["chrome"]
+
+
+@pytest.mark.asyncio
+async def test_switch_to_window_chrome_fallback_for_docshell_handle():
+    from contextlib import contextmanager
+
+    session = MarionetteSession.get()
+    session._client.window_handles = []
+    used: list[str] = []
+
+    @contextmanager
+    def _using_context(name: str):
+        used.append(name)
+        yield
+
+    session._client.using_context = _using_context
+    await switch_to_window(handle="42")
+    session._client.switch_to_window.assert_not_called()
+    session._client.execute_script.assert_called_once()
+    assert used == ["chrome"]
+    assert session._client.execute_script.call_args.kwargs["script_args"] == ["42"]
 
 
 @pytest.mark.asyncio

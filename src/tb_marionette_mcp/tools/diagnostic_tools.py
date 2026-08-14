@@ -27,7 +27,6 @@ return uri.replace(/^data:image\\/png;base64,/, "");
 """
 
 _CONSOLE_SCRIPT = """
-const {Services} = ChromeUtils.importESModule("resource://gre/modules/Services.sys.mjs");
 const msgs = Services.console.getMessageArray() || [];
 return msgs.map(m => ({
   level: (m.logLevel !== undefined) ? String(m.logLevel) :
@@ -140,10 +139,7 @@ async def get_console_logs(
             session.client.execute_script(_CONSOLE_SCRIPT, script_args=[]),
         )
         if clear:
-            session.client.execute_script(
-                'ChromeUtils.importESModule("resource://gre/modules/Services.sys.mjs").'
-                'Services.console.reset();'
-            )
+            session.client.execute_script("Services.console.reset();")
         return entries
 
     entries = await session.call(_logs, ctx="chrome")

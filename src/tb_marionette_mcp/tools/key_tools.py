@@ -5,10 +5,46 @@ from __future__ import annotations
 from typing import Any, cast
 
 from marionette_driver.keys import Keys
-from marionette_driver.marionette import Marionette, WebElement
+from marionette_driver.marionette import ActionSequence, Marionette, WebElement
 
 from tb_marionette_mcp.errors import InvalidArgumentError
 from tb_marionette_mcp.session import MarionetteSession
+
+# Fallback for chrome-only windows: dispatch KeyboardEvent via chrome-context JS.
+# Actions API fails on TB messenger.xhtml with "Browsing context discarded".
+_CHROME_KEY_SCRIPT = """
+let [keyName, modifiers] = arguments;
+let w = Services.wm.getMostRecentWindow(null);
+if (!w) return false;
+let target = w.document.activeElement || w.document.documentElement;
+let init = {
+  key: keyName,
+  code: keyName.length === 1 ? ("Key" + keyName.toUpperCase()) : keyName,
+  bubbles: true, cancelable: true,
+  ctrlKey: modifiers.ctrl, shiftKey: modifiers.shift,
+  altKey: modifiers.alt, metaKey: modifiers.meta,
+};
+target.dispatchEvent(new w.KeyboardEvent("keydown", init));
+target.dispatchEvent(new w.KeyboardEvent("keypress", init));
+target.dispatchEvent(new w.KeyboardEvent("keyup", init));
+return true;
+"""
+
+_MOD_TO_FLAG = {
+    cast(str, Keys.CONTROL): "ctrl",
+    cast(str, Keys.SHIFT): "shift",
+    cast(str, Keys.ALT): "alt",
+    cast(str, Keys.META): "meta",
+}
+
+
+def _chrome_key_flags(mods: list[str]) -> dict[str, bool]:
+    flags = {"ctrl": False, "shift": False, "alt": False, "meta": False}
+    for m in mods:
+        name = _MOD_TO_FLAG.get(m)
+        if name:
+            flags[name] = True
+    return flags
 
 _MOD_MAP = {
     "ctrl": cast(str, Keys.CONTROL),
@@ -77,13 +113,23 @@ async def send_keys(
     session = MarionetteSession.get()
 
     def _send() -> None:
+        client = session.client
         if element_id is not None:
-            _element(session.client, element_id).send_keys(keys)
-        else:
-            actions = session.client.actions.key_action()
+            _element(client, element_id).send_keys(keys)
+            return
+        try:
+            seq = ActionSequence(client, "key", "keyboard1")
             for ch in keys:
-                actions = actions.key_down(ch).key_up(ch)
-            actions.perform()
+                seq.key_down(ch).key_up(ch)
+            seq.perform()
+        except Exception:
+            # Chrome-only window fallback: no browsing context for Actions API.
+            with client.using_context("chrome"):
+                flags = {"ctrl": False, "shift": False, "alt": False, "meta": False}
+                for ch in keys:
+                    client.execute_script(
+                        _CHROME_KEY_SCRIPT, script_args=[ch, flags]
+                    )
 
     await session.call(_send)
     return {}
@@ -96,13 +142,22 @@ async def send_hotkey(
     session = MarionetteSession.get()
 
     def _send() -> None:
-        actions = session.client.actions.key_action()
-        for m in mods:
-            actions = actions.key_down(m)
-        actions = actions.key_down(key).key_up(key)
-        for m in reversed(mods):
-            actions = actions.key_up(m)
-        actions.perform()
+        client = session.client
+        try:
+            seq = ActionSequence(client, "key", "keyboard1")
+            for m in mods:
+                seq.key_down(m)
+            seq.key_down(key).key_up(key)
+            for m in reversed(mods):
+                seq.key_up(m)
+            seq.perform()
+        except Exception:
+            # Chrome-only window fallback: no browsing context for Actions API.
+            with client.using_context("chrome"):
+                flags = _chrome_key_flags(mods)
+                client.execute_script(
+                    _CHROME_KEY_SCRIPT, script_args=[key, flags]
+                )
 
     await session.call(_send)
     return {}

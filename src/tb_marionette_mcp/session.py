@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import os
 import socket
 import uuid
@@ -78,22 +77,20 @@ class MarionetteSession:
         async with self._lock:
             await self.ensure_connected()
             client = self.client
-            prior_ctx: str | None = None
-            if ctx is not None:
-                prior_ctx = getattr(client, "current_context", None)
-                client.set_context(ctx)
+
+            def _run() -> T:
+                if ctx is None:
+                    return fn(*args, **kwargs)
+                with client.using_context(ctx):
+                    return fn(*args, **kwargs)
+
             try:
+                return await asyncio.to_thread(_run)
+            except (ConnectionResetError, ConnectionAbortedError, OSError):
                 try:
-                    return await asyncio.to_thread(fn, *args, **kwargs)
-                except (ConnectionResetError, ConnectionAbortedError, OSError):
-                    try:
-                        await self._reconnect()
-                        return await asyncio.to_thread(fn, *args, **kwargs)
-                    except Exception as retry_exc:
-                        raise MarionetteWireError(
-                            f"Marionette wire error: {retry_exc}"
-                        ) from retry_exc
-            finally:
-                if prior_ctx is not None and prior_ctx != ctx:
-                    with contextlib.suppress(Exception):
-                        client.set_context(prior_ctx)
+                    await self._reconnect()
+                    return await asyncio.to_thread(_run)
+                except Exception as retry_exc:
+                    raise MarionetteWireError(
+                        f"Marionette wire error: {retry_exc}"
+                    ) from retry_exc

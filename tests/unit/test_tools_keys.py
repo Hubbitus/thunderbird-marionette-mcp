@@ -53,14 +53,19 @@ def test_parse_chord_empty():
 
 @pytest.mark.asyncio
 async def test_send_keys_global():
+    from unittest.mock import patch
+
     session = MarionetteSession.get()
-    actions_ctx = MagicMock()
-    session._client.actions.key_action.return_value = actions_ctx
-    actions_ctx.key_down.return_value = actions_ctx
-    actions_ctx.key_up.return_value = actions_ctx
-    await send_keys(keys="hi")
-    session._client.actions.key_action.assert_called_once()
-    actions_ctx.perform.assert_called_once()
+    seq = MagicMock()
+    seq.key_down.return_value = seq
+    seq.key_up.return_value = seq
+    with patch("tb_marionette_mcp.tools.key_tools.ActionSequence",
+               return_value=seq) as ctor:
+        await send_keys(keys="hi")
+    ctor.assert_called_once_with(session._client, "key", "keyboard1")
+    assert seq.key_down.call_count == 2
+    assert seq.key_up.call_count == 2
+    seq.perform.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -77,13 +82,72 @@ async def test_send_keys_to_element():
 
 @pytest.mark.asyncio
 async def test_send_hotkey_dispatches_actions():
+    from unittest.mock import patch
+
+    seq = MagicMock()
+    seq.key_down.return_value = seq
+    seq.key_up.return_value = seq
+    with patch("tb_marionette_mcp.tools.key_tools.ActionSequence",
+               return_value=seq):
+        await send_hotkey(chord="Ctrl+Shift+N")
+    seq.perform.assert_called_once()
+    # 2 mods down + 1 key down = 3 key_down calls
+    assert seq.key_down.call_count == 3
+    # 1 key up + 2 mods up = 3 key_up calls
+    assert seq.key_up.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_send_keys_falls_back_to_chrome_when_actions_fail():
+    from contextlib import contextmanager
+    from unittest.mock import patch
+
     session = MarionetteSession.get()
-    actions_ctx = MagicMock()
-    session._client.actions.key_action.return_value = actions_ctx
-    actions_ctx.key_down.return_value = actions_ctx
-    actions_ctx.key_up.return_value = actions_ctx
-    await send_hotkey(chord="Ctrl+Shift+N")
-    actions_ctx.perform.assert_called_once()
+    used: list[str] = []
+
+    @contextmanager
+    def _using_context(name: str):
+        used.append(name)
+        yield
+
+    session._client.using_context = _using_context
+    with patch("tb_marionette_mcp.tools.key_tools.ActionSequence",
+               side_effect=Exception("Browsing context discarded")):
+        await send_keys(keys="ab")
+    assert used == ["chrome"]
+    assert session._client.execute_script.call_count == 2
+    call = session._client.execute_script.call_args_list[0]
+    assert call.kwargs["script_args"][0] == "a"
+    assert call.kwargs["script_args"][1] == {
+        "ctrl": False, "shift": False, "alt": False, "meta": False,
+    }
+
+
+@pytest.mark.asyncio
+async def test_send_hotkey_falls_back_to_chrome_when_actions_fail():
+    from contextlib import contextmanager
+    from unittest.mock import patch
+
+    session = MarionetteSession.get()
+    used: list[str] = []
+
+    @contextmanager
+    def _using_context(name: str):
+        used.append(name)
+        yield
+
+    session._client.using_context = _using_context
+    with patch("tb_marionette_mcp.tools.key_tools.ActionSequence",
+               side_effect=Exception("Browsing context discarded")):
+        await send_hotkey(chord="Ctrl+Shift+N")
+    assert used == ["chrome"]
+    session._client.execute_script.assert_called_once()
+    call = session._client.execute_script.call_args
+    assert call.kwargs["script_args"][0] == "n"
+    flags = call.kwargs["script_args"][1]
+    assert flags["ctrl"] is True
+    assert flags["shift"] is True
+    assert flags["alt"] is False
 
 
 def test_parse_chord_unknown_modifier():

@@ -29,11 +29,16 @@ def test_spawn_no_binary_raises():
         spawn("test-profile", 2828)
 
 
-def test_spawn_returns_pid():
+def test_spawn_returns_pid(tmp_path):
+    import os as _os
     fake_popen = MagicMock(spec=subprocess.Popen)
     fake_popen.pid = 12345
+    stderr_file = tmp_path / "stderr.log"
+    fd = _os.open(str(stderr_file), _os.O_WRONLY | _os.O_CREAT)
     with patch("tb_marionette_mcp.process.shutil.which", return_value="/usr/bin/thunderbird"), \
-         patch("tb_marionette_mcp.process.subprocess.Popen", return_value=fake_popen) as popen_mock:
+         patch("tb_marionette_mcp.process.subprocess.Popen", return_value=fake_popen) as popen_mock, \
+         patch("tb_marionette_mcp.process.tempfile.mkstemp",
+               return_value=(fd, str(stderr_file))):
         pid = spawn("test-profile", 2828)
     assert pid == 12345
     args = popen_mock.call_args.args[0]
@@ -44,6 +49,7 @@ def test_spawn_returns_pid():
     assert "--profile" in args
     assert "test-profile" in args
     assert "-no-remote" in args
+    assert ProcessRegistry.stderr_path(12345) == str(stderr_file)
 
 
 def test_wait_port_open_success():
@@ -138,23 +144,42 @@ def test_stderr_tail_no_process():
     assert stderr_tail(99999) == ""
 
 
-def test_stderr_tail_reads_bytes():
+def test_stderr_tail_reads_bytes(tmp_path):
     from tb_marionette_mcp.process import stderr_tail
+    log = tmp_path / "s.log"
+    log.write_bytes(b"log data")
     fake = MagicMock(spec=subprocess.Popen)
     fake.pid = 666
-    fake.stderr = MagicMock()
-    fake.stderr.read.return_value = b"log data"
-    ProcessRegistry.register(fake)
+    ProcessRegistry.register(fake, stderr_path=str(log))
     assert stderr_tail(666) == "log data"
 
 
-def test_stderr_tail_seek_fallback_on_short_file():
+def test_stderr_tail_seek_fallback_on_short_file(tmp_path):
     from tb_marionette_mcp.process import stderr_tail
+    log = tmp_path / "short.log"
+    log.write_bytes(b"short")
     fake = MagicMock(spec=subprocess.Popen)
     fake.pid = 777
-    fake.stderr = MagicMock()
-    fake.stderr.seek.side_effect = [OSError("too short"), None]
-    fake.stderr.read.return_value = b"short"
-    ProcessRegistry.register(fake)
-    assert stderr_tail(777) == "short"
-    assert fake.stderr.seek.call_count == 2
+    ProcessRegistry.register(fake, stderr_path=str(log))
+    # max_bytes bigger than file → seek raises OSError, fallback to seek(0)
+    assert stderr_tail(777, max_bytes=100000) == "short"
+
+
+def test_stderr_tail_returns_empty_when_file_missing(tmp_path):
+    from tb_marionette_mcp.process import stderr_tail
+    fake = MagicMock(spec=subprocess.Popen)
+    fake.pid = 888
+    ProcessRegistry.register(fake, stderr_path=str(tmp_path / "does-not-exist"))
+    assert stderr_tail(888) == ""
+
+
+def test_unregister_removes_stderr_file(tmp_path):
+    log = tmp_path / "s.log"
+    log.write_bytes(b"x")
+    fake = MagicMock(spec=subprocess.Popen)
+    fake.pid = 999
+    ProcessRegistry.register(fake, stderr_path=str(log))
+    assert log.exists()
+    ProcessRegistry.unregister(999)
+    assert not log.exists()
+    assert ProcessRegistry.stderr_path(999) is None
