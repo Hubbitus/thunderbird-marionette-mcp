@@ -1,19 +1,25 @@
 #!/usr/bin/env bash
 # Run tb-marionette-mcp test suite.
-#
-# Usage:
-#   ./run.tests.sh                 # full suite (unit + integration), xvfb if no DISPLAY
-#   ./run.tests.sh -u              # unit tests only (--no-integration)
-#   ./run.tests.sh --lint          # ruff + mypy first, then full suite
-#   ./run.tests.sh -u --lint       # ruff + mypy + unit tests
-#   ./run.tests.sh -- -k pattern   # pass extra args to pytest after --
 
 set -euo pipefail
 
-cd "$(dirname "$(readlink -f "$0")")"
+cd "$(dirname "$(readlink -f "$0")")" #"
+
+usage() {
+    cat <<'EOF'
+Usage:
+  ./run.tests.sh                 # full suite (unit + integration), xvfb if no DISPLAY
+  ./run.tests.sh -u              # unit tests only (--no-integration)
+  ./run.tests.sh --lint          # ruff + mypy first, then full suite
+  ./run.tests.sh -u --lint       # ruff + mypy + unit tests
+  ./run.tests.sh --with-gui      # show TB window (no -headless, skip xvfb)
+  ./run.tests.sh -- -k pattern   # pass extra args to pytest after --
+EOF
+}
 
 UNIT_ONLY=0
 RUN_LINT=0
+WITH_GUI=0
 PYTEST_EXTRA=()
 
 while [[ $# -gt 0 ]]; do
@@ -26,8 +32,12 @@ while [[ $# -gt 0 ]]; do
             RUN_LINT=1
             shift
             ;;
+        --with-gui)
+            WITH_GUI=1
+            shift
+            ;;
         -h|--help)
-            sed -n '3,10p' "$0"
+            usage
             exit 0
             ;;
         --)
@@ -55,9 +65,13 @@ if [[ $UNIT_ONLY -eq 1 ]]; then
 fi
 PYTEST_ARGS+=("${PYTEST_EXTRA[@]}")
 
+if [[ $WITH_GUI -eq 1 ]]; then
+    export TB_TEST_HEADLESS=0
+fi
+
 echo "=== pytest ${PYTEST_ARGS[*]} ==="
 
-if [[ $UNIT_ONLY -eq 0 && -z "${DISPLAY:-}" ]]; then
+if [[ $UNIT_ONLY -eq 0 && $WITH_GUI -eq 0 && -z "${DISPLAY:-}" ]]; then
     if command -v xvfb-run >/dev/null 2>&1; then
         exec xvfb-run -a uv run pytest "${PYTEST_ARGS[@]}"
     else

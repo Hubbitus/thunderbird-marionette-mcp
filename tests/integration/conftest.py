@@ -38,10 +38,13 @@ def tb_process() -> Iterator[subprocess.Popen[bytes]]:
     if not binary:
         pytest.fail("thunderbird binary not found; install it or set TB_MCP_BINARY")
     _ensure_profile()
+    args = [binary, "--marionette", "--remote-allow-system-access",
+            "--marionette-port", str(PORT),
+            "--profile", str(PROFILE_DIR), "-no-remote"]
+    if os.environ.get("TB_TEST_HEADLESS", "1") != "0":
+        args.append("-headless")
     popen = subprocess.Popen(
-        [binary, "--marionette", "--remote-allow-system-access",
-         "--marionette-port", str(PORT),
-         "--profile", str(PROFILE_DIR), "-no-remote", "-headless"],
+        args,
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
     )
     deadline = time.monotonic() + 45
