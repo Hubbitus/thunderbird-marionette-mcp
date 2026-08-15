@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "tb-marionette-mcp"
-version = "0.1.0"
+dynamic = ["version"]
 description = "MCP server for Thunderbird UI automation via Marionette"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -32,6 +32,9 @@ dev = [
     "mypy>=1.11",
     "types-requests",
 ]
+
+[tool.hatch.version]
+source = "vcs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tb_marionette_mcp"]

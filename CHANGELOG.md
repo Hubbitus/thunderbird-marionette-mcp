@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-08-15
+
+### Changed
+
+- Package version now derived from git tags via `hatch-vcs` (removes manual
+  bump). `pyproject.toml` uses `dynamic = ["version"]`; sdist/wheel get their
+  version from `git describe`. Runtime `tb_marionette_mcp.__version__` reads
+  from installed wheel metadata via `importlib.metadata`.
+
+### Fixed
+
+- CI: `set -euo pipefail` under `sudo -u tester` treated `GITHUB_PATH` as
+  unbound. Removed the writeback (each step already `export PATH=$HOME/.local/bin:$PATH`
+  inline).
+- Release: v0.1.1 and v0.1.2 tags were pushed without bumping the static
+  `version` field in `pyproject.toml`, so `uv build` produced 0.1.0 artifacts
+  that PyPI rejected as duplicates. Dynamic versioning prevents this failure
+  mode entirely.
+
 ## [0.1.2] — 2026-08-15
 
 ### Fixed
@@ -75,7 +94,8 @@ Initial public release.
 - `process.py`: stderr routed to `tempfile.mkstemp()` instead of
   `subprocess.PIPE` (PIPE streams are non-seekable → `get_marionette_log` failed)
 
-[Unreleased]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Hubbitus/thunderbird-marionette-mcp/releases/tag/v0.1.0

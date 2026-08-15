@@ -1378,7 +1378,6 @@ wheels = [
 
 [[package]]
 name = "tb-marionette-mcp"
-version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "marionette-driver" },

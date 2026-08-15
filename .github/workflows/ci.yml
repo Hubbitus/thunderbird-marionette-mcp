@@ -30,7 +30,6 @@ jobs:
           sudo -u tester -H bash -lc '
             set -euo pipefail
             curl -LsSf https://astral.sh/uv/install.sh | sh
-            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           '
 
       - name: Sync deps
