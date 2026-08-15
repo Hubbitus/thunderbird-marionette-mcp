@@ -41,10 +41,13 @@ def tb_process() -> Iterator[subprocess.Popen[bytes]]:
             "--profile", str(PROFILE_DIR), "-no-remote"]
     if os.environ.get("TB_TEST_HEADLESS", "1") != "0":
         args.append("-headless")
+    import tempfile
+    stderr_fd, stderr_path = tempfile.mkstemp(prefix="tb-integ-stderr-", suffix=".log")
     popen = subprocess.Popen(
         args,
-        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+        stdout=subprocess.DEVNULL, stderr=stderr_fd,
     )
+    os.close(stderr_fd)
     deadline = time.monotonic() + 45
     while time.monotonic() < deadline:
         if _probe_port("127.0.0.1", PORT):
@@ -52,7 +55,15 @@ def tb_process() -> Iterator[subprocess.Popen[bytes]]:
         time.sleep(0.5)
     else:
         popen.kill()
-        pytest.fail("Thunderbird did not open Marionette port within 45s")
+        try:
+            with open(stderr_path) as f:
+                tail = f.read()[-4000:]
+        except OSError:
+            tail = "(stderr unavailable)"
+        pytest.fail(
+            f"Thunderbird did not open Marionette port within 45s.\n"
+            f"TB stderr tail:\n{tail}"
+        )
     yield popen
     popen.terminate()
     try:
