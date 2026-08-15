@@ -7,9 +7,21 @@ name = "tb-marionette-mcp"
 dynamic = ["version"]
 description = "MCP server for Thunderbird UI automation via Marionette"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.13"
 license = { text = "MIT" }
 authors = [{ name = "Pavel Alexeev", email = "Pahan@hubbitus.info" }]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: Email",
+    "Topic :: Software Development :: Testing",
+]
 dependencies = [
     "mcp>=2.0,<3.0",
     "marionette-driver>=3.7.1,<4.0",
