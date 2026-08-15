@@ -14,6 +14,7 @@ def write_imap_account_prefs(
     imap_port: int = 3143,
     smtp_host: str = "127.0.0.1",
     smtp_port: int = 3025,
+    marionette_port: int = 2828,
 ) -> None:
     """Append IMAP account prefs to the profile's prefs.js.
 
@@ -23,6 +24,8 @@ def write_imap_account_prefs(
     profile_dir.mkdir(parents=True, exist_ok=True)
     prefs = profile_dir / "prefs.js"
     lines = [
+        # Marionette server port (TB 153 ignores --marionette-port CLI arg)
+        f'user_pref("marionette.port", {marionette_port});\n',
         # Account definitions
         'user_pref("mail.account.account1.identities", "id1");\n',
         'user_pref("mail.account.account1.server", "server1");\n',
