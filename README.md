@@ -17,6 +17,8 @@ Like "playwright for Thunderbird".
 
 ## Install
 
+Package on PyPI: <https://pypi.org/project/tb-marionette-mcp/>
+
 ```bash
 uv tool install tb-marionette-mcp
 ```
