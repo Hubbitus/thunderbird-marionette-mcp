@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] — 2026-08-15
+
+### Fixed
+
+- CI (GitHub Actions `container: fedora:44`): TB 153 refused to launch as
+  root. Rather than papering over with `MOZ_DISABLE_CONTENT_SANDBOX`, the
+  workflow now creates an unprivileged `tester` (uid 1001) after the root
+  package install and runs uv / lint / typecheck / tests via `sudo -u tester`.
+  Content sandbox stays enabled; TB runs rootless with its own `$HOME`.
+- Integration fixture now captures TB stderr to a tempfile and includes its
+  tail in the `pytest.fail` message when the Marionette port fails to open
+  within 45s (previously the stderr was discarded, hiding root causes like
+  the sandbox EPERM above).
+- `run.ci.local.sh`: reclaim workspace ownership on exit via
+  `podman unshare chown` (rootless podman remaps container uid 1001 to host
+  uid 101000, leaving files unwritable to the host user otherwise).
+
+## [0.1.1] — 2026-08-15
+
 ### Fixed
 
 - Integration test fixture: TB 153 removed `--CreateProfile`; profile is now
@@ -56,5 +75,7 @@ Initial public release.
 - `process.py`: stderr routed to `tempfile.mkstemp()` instead of
   `subprocess.PIPE` (PIPE streams are non-seekable → `get_marionette_log` failed)
 
-[Unreleased]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Hubbitus/thunderbird-marionette-mcp/releases/tag/v0.1.0

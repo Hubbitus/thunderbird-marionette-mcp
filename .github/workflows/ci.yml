@@ -13,27 +13,56 @@ jobs:
     runs-on: ubuntu-latest
     container: fedora:44
     steps:
-      - name: Install system deps
+      - name: Install system deps (as root)
         run: |
           dnf install -y --setopt=install_weak_deps=False \
             thunderbird xorg-x11-server-Xvfb git \
             python3.11 python3.11-devel \
-            gcc which findutils curl
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+            gcc which findutils curl sudo shadow-utils
+          # TB refuses to run as root; create an unprivileged user for the rest.
+          useradd -m -u 1001 tester
 
       - uses: actions/checkout@v4
 
+      - name: Hand workspace to tester + install uv (as tester)
+        run: |
+          chown -R tester:tester "$GITHUB_WORKSPACE"
+          sudo -u tester -H bash -lc '
+            set -euo pipefail
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          '
+
       - name: Sync deps
-        run: uv sync --frozen || uv sync
+        run: |
+          sudo -u tester -H bash -lc '
+            cd "'"$GITHUB_WORKSPACE"'"
+            export PATH="$HOME/.local/bin:$PATH"
+            uv sync --frozen || uv sync
+          '
 
       - name: Ruff
-        run: uv run ruff check
+        run: |
+          sudo -u tester -H bash -lc '
+            cd "'"$GITHUB_WORKSPACE"'"
+            export PATH="$HOME/.local/bin:$PATH"
+            uv run ruff check
+          '
 
       - name: Mypy
-        run: uv run mypy
+        run: |
+          sudo -u tester -H bash -lc '
+            cd "'"$GITHUB_WORKSPACE"'"
+            export PATH="$HOME/.local/bin:$PATH"
+            uv run mypy
+          '
 
       - name: Tests
         env:
           TB_MCP_LOG_LEVEL: DEBUG
-        run: xvfb-run -a uv run pytest --cov=src --cov-report=term
+        run: |
+          sudo -u tester -H bash -lc '
+            cd "'"$GITHUB_WORKSPACE"'"
+            export PATH="$HOME/.local/bin:$PATH"
+            xvfb-run -a uv run pytest --cov=src --cov-report=term
+          '

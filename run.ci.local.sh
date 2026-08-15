@@ -29,6 +29,11 @@ if [[ -t 0 && -t 1 ]]; then
     TTY_FLAG="-it"
 fi
 
+# chown inside the container remaps uids via subuid — after the run the
+# workspace files end up owned by uid 101000 on the host and become
+# unwritable. Reclaim ownership on exit.
+trap 'podman unshare chown -R 0:0 "$PWD" 2>/dev/null || true' EXIT
+
 podman run --rm $TTY_FLAG \
     --name "${NAME}-$$" \
     -v "$PWD:/work:Z" \
@@ -37,25 +42,35 @@ podman run --rm $TTY_FLAG \
     "$IMAGE" \
     bash -c '
         set -euo pipefail
-        echo "=== install system deps ==="
+        echo "=== install system deps (root) ==="
         dnf install -y --setopt=install_weak_deps=False \
             thunderbird xorg-x11-server-Xvfb git \
             python3.11 python3.11-devel \
-            gcc which findutils curl
+            gcc which findutils curl sudo shadow-utils
 
-        echo "=== install uv ==="
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        export PATH="$HOME/.local/bin:$PATH"
+        echo "=== create tester user ==="
+        id tester >/dev/null 2>&1 || useradd -m -u 1001 tester
+        chown -R tester:tester /work
 
-        echo "=== uv sync ==="
-        uv sync --frozen || uv sync
+        echo "=== install uv + run pipeline (tester) ==="
+        sudo -u tester -H bash -lc "
+            set -euo pipefail
+            cd /work
+            if ! command -v uv >/dev/null; then
+                curl -LsSf https://astral.sh/uv/install.sh | sh
+            fi
+            export PATH=\"\$HOME/.local/bin:\$PATH\"
 
-        echo "=== ruff ==="
-        uv run ruff check
+            echo \"--- uv sync ---\"
+            uv sync --frozen || uv sync
 
-        echo "=== mypy ==="
-        uv run mypy
+            echo \"--- ruff ---\"
+            uv run ruff check
 
-        echo "=== tests (xvfb) ==="
-        xvfb-run -a uv run pytest --cov=src --cov-report=term
+            echo \"--- mypy ---\"
+            uv run mypy
+
+            echo \"--- tests (xvfb) ---\"
+            xvfb-run -a uv run pytest --cov=src --cov-report=term
+        "
     '
