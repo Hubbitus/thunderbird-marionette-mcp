@@ -36,6 +36,20 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/tb_marionette_mcp"]
 
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/tb_marionette_mcp/**",
+    "tests/**",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "pyproject.toml",
+    ".github/workflows/**",
+    "run.tests.sh",
+    "run.tests.DEV.sh",
+    "docs/PUBLISHING.md",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

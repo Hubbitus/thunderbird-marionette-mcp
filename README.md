@@ -1,21 +1,19 @@
 # Thunderbird Marionette MCP
 
-An MCP (Model Context Protocol) server exposing UI automation of a running
-Thunderbird via the native **Marionette** protocol. Lets an AI assistant click
-buttons, type text, install extensions, capture screenshots, run chrome-scope
-JavaScript, and drive Thunderbird end-to-end.
+[![CI](https://github.com/Hubbitus/thunderbird-marionette-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Hubbitus/thunderbird-marionette-mcp/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/tb-marionette-mcp.svg)](https://pypi.org/project/tb-marionette-mcp/)
+[![Python versions](https://img.shields.io/pypi/pyversions/tb-marionette-mcp.svg)](https://pypi.org/project/tb-marionette-mcp/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+An MCP (Model Context Protocol) server exposing UI automation of a running Thunderbird via the native **Marionette** protocol. Lets an AI assistant click buttons, type text, install extensions, capture screenshots, run chrome-scope JavaScript, and drive Thunderbird end-to-end.
 
 ## What & why
 
-Existing Thunderbird MCP servers (TKasperczyk/thunderbird-mcp, vitalio-sh, U-C4N,
-zileo-mcp-thunderbird, …) all work through the **WebExtension API** from inside
-Thunderbird. They handle mail/folder/contact data but cannot click UI, invoke
-hotkeys, or interact with extension popups.
+Existing Thunderbird MCP servers ([TKasperczyk/thunderbird-mcp](https://github.com/TKasperczyk/thunderbird-mcp), [U-C4N/Thunderbird-MCP](https://github.com/U-C4N/Thunderbird-MCP), and others) all work through the **WebExtension API** from inside Thunderbird. They handle mail/folder/contact data but cannot click UI, invoke hotkeys, or interact with extension popups.
 
-Marionette is Gecko's built-in automation protocol. It gives full **chrome** and
-**content** scope, including popups, dialogs, `Services`, `Cc/Ci`, `MailServices`,
-and the WebExtension popup DOM. This server wraps Marionette as MCP tools, so an
-LLM client can drive Thunderbird for extension development and end-to-end testing.
+Marionette is Gecko's built-in automation protocol. It gives full **chrome** and **content** scope, including popups, dialogs, `Services`, `Cc/Ci`, `MailServices`, and the WebExtension popup DOM. This server wraps Marionette as MCP tools, so an LLM client can drive Thunderbird for extension development and end-to-end testing.
+
+Like "playwright for Thunderbird".
 
 ## Install
 
@@ -23,7 +21,13 @@ LLM client can drive Thunderbird for extension development and end-to-end testin
 uv tool install tb-marionette-mcp
 ```
 
-Or:
+Or with [pipx](https://pipx.pypa.io/):
+
+```bash
+pipx install tb-marionette-mcp
+```
+
+Or plain pip (into an isolated venv, not system Python):
 
 ```bash
 pip install tb-marionette-mcp
@@ -31,7 +35,7 @@ pip install tb-marionette-mcp
 
 ## Prerequisites
 
-- **Thunderbird 140+** on PATH (or via `TB_MCP_BINARY`)
+- **Thunderbird 153** on PATH (or via `TB_MCP_BINARY`). Live-tested against TB 153; TB 140–152 may work but is untested — chrome-only XUL window fallbacks target TB 153 API surface.
 - **Python 3.11+**
 - Linux (Fedora / Ubuntu tested), macOS. Windows is not supported yet.
 
