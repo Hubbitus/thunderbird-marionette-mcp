@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Integration test fixture: TB 153 removed `--CreateProfile`; profile is now
+  provisioned by creating an empty directory and letting TB initialize it via
+  `--profile <path>` on first run. Restores CI green after 5 integration errors.
+
 ## [0.1.0] — 2026-08-15
 
 Initial public release.

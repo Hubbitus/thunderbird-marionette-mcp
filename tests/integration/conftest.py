@@ -12,7 +12,7 @@ import pytest
 from tb_marionette_mcp.process import _probe_port
 from tb_marionette_mcp.session import MarionetteSession
 
-# Absolute path so --CreateProfile works regardless of cwd
+# Absolute path so `--profile` works regardless of cwd
 PROFILE_DIR = Path(
     os.environ.get("TB_MCP_TEST_PROFILE")
     or (Path(__file__).parents[2] / ".tmp" / "tb-profile")
@@ -25,14 +25,9 @@ def _tb_bin() -> str | None:
 
 
 def _ensure_profile() -> None:
-    if PROFILE_DIR.exists():
-        return
+    # TB 153 removed `--CreateProfile`. Instead we just create an empty
+    # directory and pass it via `--profile`; TB initializes it on first run.
     PROFILE_DIR.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        [_tb_bin() or "thunderbird",
-         "--CreateProfile", f"tbmcp-test {PROFILE_DIR}"],
-        check=True,
-    )
 
 
 @pytest.fixture(scope="session")
