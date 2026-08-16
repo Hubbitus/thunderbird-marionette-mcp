@@ -64,17 +64,19 @@ async def find_elements(
     return {"element_ids": ids}
 
 
-async def click(element_id: str) -> dict[str, Any]:
+async def click(element_id: str, context: Context = "chrome") -> dict[str, Any]:
     session = MarionetteSession.get()
 
     def _click() -> None:
         _element(session.client, element_id).click()
 
-    await session.call(_click)
+    await session.call(_click, ctx=context)
     return {}
 
 
-async def type_text(element_id: str, text: str, clear: bool = False) -> dict[str, Any]:
+async def type_text(
+    element_id: str, text: str, clear: bool = False, context: Context = "chrome"
+) -> dict[str, Any]:
     session = MarionetteSession.get()
 
     def _type() -> None:
@@ -83,45 +85,51 @@ async def type_text(element_id: str, text: str, clear: bool = False) -> dict[str
             el.clear()
         el.send_keys(text)
 
-    await session.call(_type)
+    await session.call(_type, ctx=context)
     return {}
 
 
-async def get_text(element_id: str) -> dict[str, str]:
+async def get_text(element_id: str, context: Context = "chrome") -> dict[str, str]:
     session = MarionetteSession.get()
 
     def _get() -> str:
         return str(_element(session.client, element_id).text)
 
-    return {"text": await session.call(_get)}
+    return {"text": await session.call(_get, ctx=context)}
 
 
-async def get_attribute(element_id: str, name: str) -> dict[str, str | None]:
+async def get_attribute(
+    element_id: str, name: str, context: Context = "chrome"
+) -> dict[str, str | None]:
     session = MarionetteSession.get()
 
     def _get() -> str | None:
         val = _element(session.client, element_id).get_attribute(name)
         return None if val is None else str(val)
 
-    return {"value": await session.call(_get)}
+    return {"value": await session.call(_get, ctx=context)}
 
 
-async def get_property(element_id: str, name: str) -> dict[str, Any]:
+async def get_property(
+    element_id: str, name: str, context: Context = "chrome"
+) -> dict[str, Any]:
     session = MarionetteSession.get()
 
     def _get() -> Any:
         return _element(session.client, element_id).get_property(name)
 
-    return {"value": await session.call(_get)}
+    return {"value": await session.call(_get, ctx=context)}
 
 
-async def is_displayed(element_id: str) -> dict[str, bool]:
+async def is_displayed(
+    element_id: str, context: Context = "chrome"
+) -> dict[str, bool]:
     session = MarionetteSession.get()
 
     def _check() -> bool:
         return bool(_element(session.client, element_id).is_displayed())
 
-    return {"visible": await session.call(_check)}
+    return {"visible": await session.call(_check, ctx=context)}
 
 
 async def list_windows() -> list[dict[str, str]]:
@@ -248,7 +256,7 @@ async def wait_for_element(
             continue
         if not visible:
             return found
-        vis = await is_displayed(found["element_id"])
+        vis = await is_displayed(found["element_id"], context=context)
         if vis["visible"]:
             return found
         time.sleep(0.2)

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Integration test suite expanded from 5 to 25 tests, covering all 30 MCP tools
+  at 100% line coverage. New per-tool-group files: `test_process.py`,
+  `test_process_terminate.py`, `test_ui.py`, `test_keys.py`, `test_scripts.py`,
+  `test_diagnostics.py`, `test_extensions.py`, plus an end-to-end
+  `test_mail_workflow.py` that drives a real IMAP fetch against a Greenmail
+  container.
+- Greenmail-backed fixtures (`tests/integration/greenmail.py`,
+  `tests/integration/profile_prefs.py`): auto-starts a `greenmail/standalone:2.1.0`
+  podman sidecar and seeds a pre-configured IMAP account into a wiped TB profile
+  before launch. Set `TB_INTEGRATION_GM_EXTERNAL=1` + `GREENMAIL_HOST` to reuse
+  an externally-started instance (used by CI `services:` block).
+- `run.ci.local.sh` and CI `services:` block both spawn a Greenmail sidecar so
+  the mail-workflow test runs in every pipeline.
+- `pytest-timeout` dev-dep — every integration test is capped so a wedged TB
+  cannot stall the whole suite.
+
+### Fixed
+
+- Cross-test hang triggered by `thunderbird_terminate`: nulling the session
+  client without calling `cleanup()` left a dangling Marionette session on the
+  main TB, so the next test's `ensure_connected` blocked forever. Session
+  fixture now force-cleans the client after every test.
+
 ## [0.1.4] — 2026-08-15
 
 ### Added

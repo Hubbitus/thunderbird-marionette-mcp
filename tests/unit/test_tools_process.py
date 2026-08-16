@@ -41,6 +41,33 @@ async def test_launch_no_wait():
 
 
 @pytest.mark.asyncio
+async def test_launch_idempotent_when_port_open():
+    """If Marionette port already reachable and a pid is tracked, do NOT spawn
+    a second TB — return the existing pid with already_running=True."""
+    with patch("tb_marionette_mcp.tools.process_tools._probe_port", return_value=True), \
+         patch("tb_marionette_mcp.tools.process_tools.ProcessRegistry.any_pid",
+               return_value=99), \
+         patch("tb_marionette_mcp.tools.process_tools.spawn") as spawn_m:
+        result = await thunderbird_launch(profile="test", marionette_port=2828,
+                                          wait_ready=True, ready_timeout=5)
+    spawn_m.assert_not_called()
+    assert result["pid"] == 99
+    assert result["already_running"] is True
+
+
+@pytest.mark.asyncio
+async def test_launch_spawns_when_port_closed():
+    with patch("tb_marionette_mcp.tools.process_tools._probe_port", return_value=False), \
+         patch("tb_marionette_mcp.tools.process_tools.spawn", return_value=42) as spawn_m, \
+         patch("tb_marionette_mcp.tools.process_tools.wait_port_open"):
+        result = await thunderbird_launch(profile="test", marionette_port=2828,
+                                          wait_ready=True, ready_timeout=5)
+    spawn_m.assert_called_once()
+    assert result["pid"] == 42
+    assert result.get("already_running", False) is False
+
+
+@pytest.mark.asyncio
 async def test_terminate_none_uses_registry():
     with patch("tb_marionette_mcp.tools.process_tools.ProcessRegistry.any_pid",
                return_value=42), \

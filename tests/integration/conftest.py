@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import os
 import shutil
@@ -154,25 +155,40 @@ async def session(
     # Per-test cleanup: reset frame to default so the next test starts clean.
     with contextlib.suppress(Exception):
         await s.call(lambda: s.client.switch_to_default_content())
+    # If a test invoked thunderbird_terminate (which nulls session._client without
+    # cleaning up the server-side Marionette session), the next test's ensure_connected
+    # would open a NEW session while TB still holds the old one — causing hangs.
+    # Force full disconnect so the next test starts from a clean singleton state.
+    with contextlib.suppress(Exception):
+        client = s._client
+        if client is not None:
+            await asyncio.to_thread(client.cleanup)
+    s._client = None
+    s._connected = False
 
 
-@pytest.fixture(scope="session")
-def imap_account(
-    greenmail_service: gm.GreenmailEndpoints | None,
-) -> gm.GreenmailEndpoints:
-    """Seed a couple of messages for mail workflow tests."""
-    if greenmail_service is None:
-        pytest.skip("imap_account fixture requires greenmail (skipped in REAL_PROFILE mode)")
+def _seed_messages(endpoints: gm.GreenmailEndpoints) -> None:
     gm.seed_message(
-        greenmail_service, to="user@greenmail.local",
+        endpoints, to="user@greenmail.local",
         from_addr="alice@example.com",
         subject="Integration Fixture Message 1",
         body="hello from greenmail fixture",
     )
     gm.seed_message(
-        greenmail_service, to="user@greenmail.local",
+        endpoints, to="user@greenmail.local",
         from_addr="bob@example.com",
         subject="Integration Fixture Message 2",
         body="second body",
     )
+
+
+@pytest.fixture(scope="session")
+def imap_account(
+    greenmail_service: gm.GreenmailEndpoints | None,
+    tb_process: subprocess.Popen[bytes],  # noqa: ARG001 — ordering only
+) -> gm.GreenmailEndpoints:
+    """Seed messages after TB has started so an IMAP fetch will actually find them."""
+    if greenmail_service is None:
+        pytest.skip("imap_account fixture requires greenmail (skipped in REAL_PROFILE mode)")
+    _seed_messages(greenmail_service)
     return greenmail_service

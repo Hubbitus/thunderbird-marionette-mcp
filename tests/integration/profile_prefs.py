@@ -9,7 +9,7 @@ def write_imap_account_prefs(
     profile_dir: Path,
     *,
     email: str = "user@greenmail.local",
-    username: str = "user",
+    username: str = "user@greenmail.local",
     imap_host: str = "127.0.0.1",
     imap_port: int = 3143,
     smtp_host: str = "127.0.0.1",
@@ -44,6 +44,9 @@ def write_imap_account_prefs(
         'user_pref("mail.server.server1.authMethod", 3);\n',  # cleartext
         f'user_pref("mail.server.server1.name", "{email}");\n',
         'user_pref("mail.server.server1.check_new_mail", false);\n',
+        'user_pref("mail.server.server1.download_on_biff", true);\n',
+        'user_pref("mail.biff.play_sound", false);\n',
+        'user_pref("mail.biff.show_alert", false);\n',
         # SMTP
         'user_pref("mail.smtpservers", "smtp1");\n',
         f'user_pref("mail.smtpserver.smtp1.hostname", "{smtp_host}");\n',

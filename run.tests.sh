@@ -90,12 +90,12 @@ if [[ "${TB_INTEGRATION_IMAP:-0}" == "1" && "${TB_INTEGRATION_GM_EXTERNAL:-0}" !
     GM_NAME="greenmail-run-tests-$$"
     echo "=== starting greenmail ($GM_NAME) ==="
     podman run -d --rm --name "$GM_NAME" \
-        -p 3143:3143 -p 3025:3025 -p 3080:3080 \
+        -p 3143:3143 -p 3025:3025 -p 8080:8080 \
         -e GREENMAIL_OPTS="-Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled" \
         docker.io/greenmail/standalone:2.1.0 >/dev/null
     trap "podman kill '$GM_NAME' >/dev/null 2>&1 || true" EXIT
     export TB_INTEGRATION_GM_EXTERNAL=1
-    export TB_INTEGRATION_GM_HOST=127.0.0.1
+    export GREENMAIL_HOST=127.0.0.1
 fi
 
 echo "=== pytest ${PYTEST_ARGS[*]} ==="

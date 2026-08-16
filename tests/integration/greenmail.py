@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
-import json
 import os
+import smtplib
 import socket
 import subprocess
 import time
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
+from email.message import EmailMessage
 
 GREENMAIL_IMAGE = "docker.io/greenmail/standalone:2.1.0"
 IMAP_PORT = 3143
 SMTP_PORT = 3025
-REST_PORT = 3080
+REST_PORT = 8080
 
 
 @dataclass(frozen=True)
@@ -86,27 +85,18 @@ def seed_message(
     subject: str,
     body: str,
 ) -> None:
-    """POST a raw message to greenmail REST /api/service/handle/mail."""
-    raw = (
-        f"From: {from_addr}\r\n"
-        f"To: {to}\r\n"
-        f"Subject: {subject}\r\n"
-        f"MIME-Version: 1.0\r\n"
-        f"Content-Type: text/plain; charset=utf-8\r\n"
-        f"\r\n"
-        f"{body}"
-    )
-    payload = json.dumps({
-        "from": from_addr, "to": to, "subject": subject, "body": raw
-    }).encode()
-    url = f"http://{endpoints.host}:{endpoints.rest_port}/api/service/handle/mail"
-    req = urllib.request.Request(
-        url, data=payload, headers={"Content-Type": "application/json"}, method="POST"
-    )
+    """Deliver a message to greenmail via SMTP. Greenmail 2.x REST does not
+    expose a synchronous mail-injection endpoint; SMTP is the supported path
+    with -Dgreenmail.setup.test.all (all protocols on all-users acceptance)."""
+    msg = EmailMessage()
+    msg["From"] = from_addr
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.set_content(body)
     try:
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            resp.read()
-    except urllib.error.URLError as exc:
+        with smtplib.SMTP(endpoints.host, endpoints.smtp_port, timeout=5) as smtp:
+            smtp.send_message(msg)
+    except (smtplib.SMTPException, OSError) as exc:
         raise RuntimeError(f"greenmail seed failed: {exc}") from exc
 
 
