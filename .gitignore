@@ -10,3 +10,6 @@ build/
 *.egg-info/
 .coverage
 htmlcov/
+.claude/
+no:cacheprovider/
+tests/fixtures/*.xpi

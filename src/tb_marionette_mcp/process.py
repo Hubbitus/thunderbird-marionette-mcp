@@ -61,7 +61,7 @@ class ProcessRegistry:
         cls._stderr_paths.clear()
 
 
-def _probe_port(host: str, port: int, timeout: float = 0.5) -> bool:
+def probe_port(host: str, port: int, timeout: float = 0.5) -> bool:
     try:
         with socket.create_connection((host, port), timeout=timeout):
             return True
@@ -101,7 +101,7 @@ def spawn(profile: str, port: int) -> int:
 def wait_port_open(host: str, port: int, timeout: float) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if _probe_port(host, port):
+        if probe_port(host, port):
             return
         time.sleep(0.2)
     raise TimeoutError(f"port {host}:{port} did not open within {timeout}s")
@@ -129,7 +129,7 @@ def status(port: int, host: str = "127.0.0.1") -> dict[str, Any]:
         "running": pid is not None,
         "pid": pid,
         "port": port,
-        "connected": _probe_port(host, port),
+        "connected": probe_port(host, port),
     }
 
 

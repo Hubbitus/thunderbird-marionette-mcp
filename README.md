@@ -17,6 +17,8 @@ Like "playwright for Thunderbird".
 
 ## Install
 
+Package on PyPI: <https://pypi.org/project/tb-marionette-mcp/>
+
 ```bash
 uv tool install tb-marionette-mcp
 ```
@@ -130,7 +132,7 @@ The result contains base64-encoded PNG under `data_base64`.
 
 ## Tool reference
 
-All 30 tools are pydantic-validated. Response objects are always dicts (or lists
+All 31 tools are pydantic-validated. Response objects are always dicts (or lists
 of dicts) so future fields can be added without breaking clients.
 
 ### Process
@@ -143,12 +145,13 @@ of dicts) so future fields can be added without breaking clients.
 
 ### Extensions
 
-| Tool                 | Description                             | Key params                    |
-| -------------------- | --------------------------------------- | ----------------------------- |
-| `extension_install`  | Install XPI via `Addons.install`        | `xpi_path`, `temporary=True`  |
-| `extension_uninstall`| Remove addon by id                      | `addon_id`                    |
-| `extension_reload`   | Uninstall + install (dev cycle)         | `addon_id`, `xpi_path`        |
-| `extension_list`     | List all addons via `AddonManager`      | —                             |
+| Tool                        | Description                                    | Key params                    |
+| --------------------------- | ---------------------------------------------- | ----------------------------- |
+| `extension_install`         | Install XPI via `Addons.install`               | `xpi_path`, `temporary=True`  |
+| `extension_uninstall`       | Remove addon by id                             | `addon_id`                    |
+| `extension_reload`          | Uninstall + install (dev cycle)                | `addon_id`, `xpi_path`        |
+| `extension_list`            | List all addons via `AddonManager`             | —                             |
+| `extension_trigger_command` | Fire `commands.onCommand` directly (bypass kbd) | `addon_id`, `command_name`    |
 
 ### UI
 

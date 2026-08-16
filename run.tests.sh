@@ -83,6 +83,21 @@ if [[ -n "$PROFILE" ]]; then
     export TB_MCP_TEST_PROFILE="$PROFILE"
 fi
 
+# Auto-start greenmail if TB_INTEGRATION_IMAP=1 and no external instance configured.
+# In-fixture podman lifecycle is default; this env is for pre-starting the container
+# manually (e.g. when podman rootless would fail inside pytest).
+if [[ "${TB_INTEGRATION_IMAP:-0}" == "1" && "${TB_INTEGRATION_GM_EXTERNAL:-0}" != "1" ]]; then
+    GM_NAME="greenmail-run-tests-$$"
+    echo "=== starting greenmail ($GM_NAME) ==="
+    podman run -d --rm --name "$GM_NAME" \
+        -p 3143:3143 -p 3025:3025 -p 8080:8080 \
+        -e GREENMAIL_OPTS="-Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled" \
+        docker.io/greenmail/standalone:2.1.0 >/dev/null
+    trap "podman kill '$GM_NAME' >/dev/null 2>&1 || true" EXIT
+    export TB_INTEGRATION_GM_EXTERNAL=1
+    export GREENMAIL_HOST=127.0.0.1
+fi
+
 echo "=== pytest ${PYTEST_ARGS[*]} ==="
 
 if [[ $UNIT_ONLY -eq 0 && $WITH_GUI -eq 0 && -z "${DISPLAY:-}" ]]; then

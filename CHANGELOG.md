@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-16
+
+### Added
+
+- New MCP tool `extension_trigger_command(addon_id, command_name)` — fires a
+  WebExtension `commands.onCommand` listener directly by emitting the internal
+  `"command"` event via `ExtensionParent.GlobalManager`. Bypasses key dispatch
+  entirely, working around TB 153 chrome-XUL windows swallowing WebDriver key
+  events before they reach the shortcut manager
+  (fixes [#1](https://github.com/Hubbitus/thunderbird-marionette-mcp/issues/1)).
+  Total tool count: 30 → 31.
+- Integration test suite expanded from 5 to 37 tests, covering all 31 MCP tools
+  at 100% line coverage. New per-tool-group files: `test_process.py`,
+  `test_process_terminate.py`, `test_ui.py`, `test_keys.py`, `test_scripts.py`,
+  `test_diagnostics.py`, `test_extensions.py`, plus end-to-end
+  `test_mail_workflow.py` (IMAP fetch against Greenmail) and
+  `test_mail_ui_navigation.py` (chrome-script + XUL click flavours of "select
+  Inbox, read first message").
+- Greenmail-backed fixtures (`tests/integration/greenmail.py`,
+  `tests/integration/profile_prefs.py`): auto-starts a `greenmail/standalone:2.1.0`
+  podman sidecar and seeds a pre-configured IMAP account into a wiped TB profile
+  before launch. Set `TB_INTEGRATION_GM_EXTERNAL=1` + `GREENMAIL_HOST` to reuse
+  an externally-started instance (used by CI `services:` block).
+- `run.ci.local.sh` and CI `services:` block both spawn a Greenmail sidecar so
+  the mail-workflow test runs in every pipeline.
+- `pytest-timeout` dev-dep — every integration test is capped so a wedged TB
+  cannot stall the whole suite.
+- Label-based orphan container reap: `start_container()` now runs
+  `cleanup_stale_containers()` first, filtering by
+  `app=tb-marionette-mcp-autotest`. Prevents port-binding conflicts after a
+  session dies from SIGKILL / segfault / OOM, without touching user's own
+  containers.
+
+### Changed
+
+- **BREAKING**: `click`, `type_text`, `get_text`, `get_attribute`,
+  `get_property`, `is_displayed` gained a `context: "chrome" | "content"`
+  parameter with `"chrome"` as default. Previously these tools ran in
+  whatever context Marionette's session was in — effectively `"content"`
+  on a fresh connection. This matches TB's chrome-only UI (`messenger.xhtml`)
+  as the primary target of the server; callers targeting content pages must
+  pass `context="content"` explicitly.
+- **BREAKING**: `probe_port` in `tb_marionette_mcp.process` was renamed from
+  `_probe_port` (private) to `probe_port` (public), since it is imported by
+  `tools/process_tools.py` and integration tests.
+
+### Fixed
+
+- Cross-test hang triggered by `thunderbird_terminate`: nulling the session
+  client without calling `cleanup()` left a dangling Marionette session on the
+  main TB, so the next test's `ensure_connected` blocked forever. Session
+  fixture now force-cleans the client after every test, with a 5s timeout so
+  a wedged TB cannot stall test-suite teardown indefinitely.
+
 ## [0.1.4] — 2026-08-15
 
 ### Added
@@ -107,7 +161,8 @@ Initial public release.
 - `process.py`: stderr routed to `tempfile.mkstemp()` instead of
   `subprocess.PIPE` (PIPE streams are non-seekable → `get_marionette_log` failed)
 
-[Unreleased]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.4...v0.2.0
 [0.1.4]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.1...v0.1.2

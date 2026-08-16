@@ -12,6 +12,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container: fedora:44
+    services:
+      greenmail:
+        image: greenmail/standalone:2.1.0
+        ports:
+          - 3025:3025
+          - 3143:3143
+          - 8080:8080
+        env:
+          GREENMAIL_OPTS: "-Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled"
     steps:
       - name: Install system deps (as root)
         run: |
@@ -59,9 +68,15 @@ jobs:
       - name: Tests
         env:
           TB_MCP_LOG_LEVEL: DEBUG
+          TB_INTEGRATION_IMAP: "1"
+          TB_INTEGRATION_GM_EXTERNAL: "1"
+          GREENMAIL_HOST: greenmail
         run: |
           sudo -u tester -H bash -lc '
             cd "'"$GITHUB_WORKSPACE"'"
             export PATH="$HOME/.local/bin:$PATH"
+            export TB_INTEGRATION_IMAP="'"$TB_INTEGRATION_IMAP"'"
+            export TB_INTEGRATION_GM_EXTERNAL="'"$TB_INTEGRATION_GM_EXTERNAL"'"
+            export GREENMAIL_HOST="'"$GREENMAIL_HOST"'"
             xvfb-run -a uv run pytest --cov=src --cov-report=term
           '

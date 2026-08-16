@@ -32,13 +32,25 @@ fi
 # chown inside the container remaps uids via subuid — after the run the
 # workspace files end up owned by uid 101000 on the host and become
 # unwritable. Reclaim ownership on exit.
-trap 'podman unshare chown -R 0:0 "$PWD" 2>/dev/null || true' EXIT
+trap 'podman unshare chown -R 0:0 "$PWD" 2>/dev/null || true; podman kill "$GM_NAME" >/dev/null 2>&1 || true' EXIT
+
+# Sidecar greenmail on host — reachable from the CI container via
+# host.containers.internal (podman default). Mirrors GHA `services:` block.
+GM_NAME="tb-mcp-ci-greenmail-$$"
+echo "=== starting greenmail sidecar ($GM_NAME) ==="
+podman run -d --rm --name "$GM_NAME" \
+    -p 3143:3143 -p 3025:3025 -p 8080:8080 \
+    -e GREENMAIL_OPTS="-Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled" \
+    docker.io/greenmail/standalone:2.1.0 >/dev/null
 
 podman run --rm $TTY_FLAG \
     --name "${NAME}-$$" \
     -v "$PWD:/work:Z" \
     -w /work \
     -e TB_MCP_LOG_LEVEL=DEBUG \
+    -e TB_INTEGRATION_IMAP=1 \
+    -e TB_INTEGRATION_GM_EXTERNAL=1 \
+    -e GREENMAIL_HOST=host.containers.internal \
     "$IMAGE" \
     bash -c '
         set -euo pipefail
@@ -53,7 +65,11 @@ podman run --rm $TTY_FLAG \
         chown -R tester:tester /work
 
         echo "=== install uv + run pipeline (tester) ==="
-        sudo -u tester -H bash -lc "
+        sudo -u tester -H \
+            TB_INTEGRATION_IMAP="$TB_INTEGRATION_IMAP" \
+            TB_INTEGRATION_GM_EXTERNAL="$TB_INTEGRATION_GM_EXTERNAL" \
+            GREENMAIL_HOST="$GREENMAIL_HOST" \
+            bash -lc "
             set -euo pipefail
             cd /work
             if ! command -v uv >/dev/null; then

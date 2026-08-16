@@ -8,6 +8,7 @@ from tb_marionette_mcp.tools.extension_tools import (
     extension_install,
     extension_list,
     extension_reload,
+    extension_trigger_command,
     extension_uninstall,
 )
 
@@ -72,3 +73,50 @@ async def test_list():
     ]
     result = await extension_list()
     assert result[0]["id"] == "a"
+
+
+@pytest.mark.asyncio
+async def test_trigger_command_success():
+    """extension_trigger_command must call execute_async_script in chrome
+    context, passing addon_id + command_name, and return {"triggered": True}
+    when the JS payload reports success."""
+    session = MarionetteSession.get()
+    session._client.execute_async_script.return_value = {"ok": True}
+    result = await extension_trigger_command(
+        addon_id="ext@example", command_name="open-note-editor"
+    )
+    session._client.execute_async_script.assert_called_once()
+    call = session._client.execute_async_script.call_args
+    assert call.kwargs["script_args"] == ["ext@example", "open-note-editor"]
+    assert result == {"triggered": True}
+
+
+@pytest.mark.asyncio
+async def test_trigger_command_extension_not_found():
+    """If the JS payload reports the extension is not registered, raise."""
+    from tb_marionette_mcp.errors import InvalidArgumentError
+
+    session = MarionetteSession.get()
+    session._client.execute_async_script.return_value = {
+        "ok": False,
+        "error": "extension not found",
+    }
+    with pytest.raises(InvalidArgumentError):
+        await extension_trigger_command(
+            addon_id="missing@example", command_name="foo"
+        )
+
+
+@pytest.mark.asyncio
+async def test_trigger_command_api_not_loaded():
+    from tb_marionette_mcp.errors import InvalidArgumentError
+
+    session = MarionetteSession.get()
+    session._client.execute_async_script.return_value = {
+        "ok": False,
+        "error": "commands API not loaded",
+    }
+    with pytest.raises(InvalidArgumentError):
+        await extension_trigger_command(
+            addon_id="ext@example", command_name="foo"
+        )
