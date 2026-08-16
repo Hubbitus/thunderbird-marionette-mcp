@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-08-17
+
+### Changed
+
+- `tests/integration/test_content_context.py`: replaced `try/except/pass` with
+  `contextlib.suppress(Exception)` in module-scope cleanup fixture (ruff SIM105).
+  No behavior change; unblocks CI on `main`.
+
 ## [0.2.1] — 2026-08-17
 
 ### Added
@@ -200,7 +208,8 @@ Initial public release.
 - `process.py`: stderr routed to `tempfile.mkstemp()` instead of
   `subprocess.PIPE` (PIPE streams are non-seekable → `get_marionette_log` failed)
 
-[Unreleased]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.4...v0.2.0
 [0.1.4]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.3...v0.1.4
