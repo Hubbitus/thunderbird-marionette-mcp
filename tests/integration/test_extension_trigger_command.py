@@ -50,8 +50,9 @@ async def test_trigger_command_fires_listener(session: MarionetteSession) -> Non
 
         # Background page may be dormant on first fire; wakeupBackground()
         # inside the tool awaits it, but the listener callback + console
-        # flush still races with our read. Poll up to 5s.
-        deadline = time.monotonic() + 5.0
+        # flush still races with our read. Poll up to 10s (CI needs
+        # headroom over local dev).
+        deadline = time.monotonic() + 10.0
         found = False
         while time.monotonic() < deadline:
             entries = await get_console_logs()

@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from tb_marionette_mcp.process import ProcessRegistry, _probe_port
+from tb_marionette_mcp.process import ProcessRegistry, probe_port
 from tb_marionette_mcp.tools.process_tools import thunderbird_terminate
 from tests.integration.profile_prefs import write_imap_account_prefs
 
@@ -49,7 +49,7 @@ async def test_terminate_kills_pid() -> None:
     try:
         deadline = time.monotonic() + 60
         while time.monotonic() < deadline:
-            if _probe_port("127.0.0.1", port):
+            if probe_port("127.0.0.1", port):
                 break
             time.sleep(0.5)
         else:

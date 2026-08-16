@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   events before they reach the shortcut manager
   (fixes [#1](https://github.com/Hubbitus/thunderbird-marionette-mcp/issues/1)).
   Total tool count: 30 → 31.
-- Integration test suite expanded from 5 to 27 tests, covering all 31 MCP tools
+- Integration test suite expanded from 5 to 37 tests, covering all 31 MCP tools
   at 100% line coverage. New per-tool-group files: `test_process.py`,
   `test_process_terminate.py`, `test_ui.py`, `test_keys.py`, `test_scripts.py`,
   `test_diagnostics.py`, `test_extensions.py`, plus end-to-end
@@ -40,12 +40,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   session dies from SIGKILL / segfault / OOM, without touching user's own
   containers.
 
+### Changed
+
+- **BREAKING**: `click`, `type_text`, `get_text`, `get_attribute`,
+  `get_property`, `is_displayed` gained a `context: "chrome" | "content"`
+  parameter with `"chrome"` as default. Previously these tools ran in
+  whatever context Marionette's session was in — effectively `"content"`
+  on a fresh connection. This matches TB's chrome-only UI (`messenger.xhtml`)
+  as the primary target of the server; callers targeting content pages must
+  pass `context="content"` explicitly.
+- **BREAKING**: `probe_port` in `tb_marionette_mcp.process` was renamed from
+  `_probe_port` (private) to `probe_port` (public), since it is imported by
+  `tools/process_tools.py` and integration tests.
+
 ### Fixed
 
 - Cross-test hang triggered by `thunderbird_terminate`: nulling the session
   client without calling `cleanup()` left a dangling Marionette session on the
   main TB, so the next test's `ensure_connected` blocked forever. Session
-  fixture now force-cleans the client after every test.
+  fixture now force-cleans the client after every test, with a 5s timeout so
+  a wedged TB cannot stall test-suite teardown indefinitely.
 
 ## [0.1.4] — 2026-08-15
 

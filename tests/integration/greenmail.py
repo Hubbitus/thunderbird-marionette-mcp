@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import smtplib
 import socket
@@ -9,6 +10,8 @@ import subprocess
 import time
 from dataclasses import dataclass
 from email.message import EmailMessage
+
+_log = logging.getLogger(__name__)
 
 GREENMAIL_IMAGE = "docker.io/greenmail/standalone:2.1.0"
 IMAP_PORT = 3143
@@ -64,6 +67,11 @@ def cleanup_stale_containers() -> None:
         capture_output=True, text=True, check=False,
     )
     if result.returncode != 0:
+        _log.warning(
+            "podman ps failed (rc=%s); skipping stale-container cleanup. "
+            "stderr=%s",
+            result.returncode, result.stderr.strip(),
+        )
         return
     for name in result.stdout.splitlines():
         name = name.strip()

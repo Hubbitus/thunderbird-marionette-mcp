@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from tb_marionette_mcp.process import _probe_port
+from tb_marionette_mcp.process import probe_port
 from tb_marionette_mcp.session import MarionetteSession
 from tests.fixtures import build_cmd_xpi, build_hello_xpi
 from tests.integration import greenmail as gm
@@ -134,7 +134,7 @@ def tb_process(
     os.close(stderr_fd)
     deadline = time.monotonic() + 45
     while time.monotonic() < deadline:
-        if _probe_port("127.0.0.1", PORT):
+        if probe_port("127.0.0.1", PORT):
             break
         time.sleep(0.5)
     else:
@@ -171,10 +171,12 @@ async def session(
     # cleaning up the server-side Marionette session), the next test's ensure_connected
     # would open a NEW session while TB still holds the old one — causing hangs.
     # Force full disconnect so the next test starts from a clean singleton state.
-    with contextlib.suppress(Exception):
+    with contextlib.suppress(Exception, asyncio.TimeoutError):
         client = s._client
         if client is not None:
-            await asyncio.to_thread(client.cleanup)
+            # Timeout guards against a wedged TB blocking teardown indefinitely
+            # (pytest-timeout fires per-test, not per-fixture).
+            await asyncio.wait_for(asyncio.to_thread(client.cleanup), timeout=5.0)
     s._client = None
     s._connected = False
 

@@ -53,12 +53,12 @@ def test_spawn_returns_pid(tmp_path):
 
 
 def test_wait_port_open_success():
-    with patch("tb_marionette_mcp.process._probe_port", return_value=True):
+    with patch("tb_marionette_mcp.process.probe_port", return_value=True):
         wait_port_open("127.0.0.1", 2828, timeout=1.0)
 
 
 def test_wait_port_open_timeout():
-    with patch("tb_marionette_mcp.process._probe_port", return_value=False), \
+    with patch("tb_marionette_mcp.process.probe_port", return_value=False), \
          pytest.raises(TimeoutError):
         wait_port_open("127.0.0.1", 2828, timeout=0.3)
 
@@ -68,7 +68,7 @@ def test_terminate_unknown_pid():
 
 
 def test_status_no_process():
-    with patch("tb_marionette_mcp.process._probe_port", return_value=False):
+    with patch("tb_marionette_mcp.process.probe_port", return_value=False):
         s = status(2828)
     assert s["running"] is False
     assert s["pid"] is None
@@ -99,23 +99,23 @@ def test_registry_any_pid_skips_exited():
     assert ProcessRegistry.any_pid() is None
 
 
-def test_probe_port_returns_false_on_oserror():
-    from tb_marionette_mcp.process import _probe_port
+def testprobe_port_returns_false_on_oserror():
+    from tb_marionette_mcp.process import probe_port
     with patch("tb_marionette_mcp.process.socket.create_connection",
                side_effect=OSError):
-        assert _probe_port("127.0.0.1", 1) is False
+        assert probe_port("127.0.0.1", 1) is False
 
 
-def test_probe_port_returns_true_when_listener_up():
+def testprobe_port_returns_true_when_listener_up():
     import socket as _s
 
-    from tb_marionette_mcp.process import _probe_port
+    from tb_marionette_mcp.process import probe_port
     srv = _s.socket(_s.AF_INET, _s.SOCK_STREAM)
     srv.bind(("127.0.0.1", 0))
     srv.listen(1)
     port = srv.getsockname()[1]
     try:
-        assert _probe_port("127.0.0.1", port) is True
+        assert probe_port("127.0.0.1", port) is True
     finally:
         srv.close()
 

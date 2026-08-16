@@ -44,7 +44,7 @@ async def test_launch_no_wait():
 async def test_launch_idempotent_when_port_open():
     """If Marionette port already reachable and a pid is tracked, do NOT spawn
     a second TB — return the existing pid with already_running=True."""
-    with patch("tb_marionette_mcp.tools.process_tools._probe_port", return_value=True), \
+    with patch("tb_marionette_mcp.tools.process_tools.probe_port", return_value=True), \
          patch("tb_marionette_mcp.tools.process_tools.ProcessRegistry.any_pid",
                return_value=99), \
          patch("tb_marionette_mcp.tools.process_tools.spawn") as spawn_m:
@@ -57,7 +57,7 @@ async def test_launch_idempotent_when_port_open():
 
 @pytest.mark.asyncio
 async def test_launch_spawns_when_port_closed():
-    with patch("tb_marionette_mcp.tools.process_tools._probe_port", return_value=False), \
+    with patch("tb_marionette_mcp.tools.process_tools.probe_port", return_value=False), \
          patch("tb_marionette_mcp.tools.process_tools.spawn", return_value=42) as spawn_m, \
          patch("tb_marionette_mcp.tools.process_tools.wait_port_open"):
         result = await thunderbird_launch(profile="test", marionette_port=2828,

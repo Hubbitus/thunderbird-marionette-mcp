@@ -7,7 +7,7 @@ from typing import Any
 from tb_marionette_mcp.errors import InvalidArgumentError
 from tb_marionette_mcp.process import (
     ProcessRegistry,
-    _probe_port,
+    probe_port,
     spawn,
     status,
     terminate,
@@ -24,7 +24,7 @@ async def thunderbird_launch(
 ) -> dict[str, Any]:
     # Idempotency: if the Marionette port is already reachable and a pid is
     # tracked, reuse that TB rather than spawning a second one on the same port.
-    if _probe_port("127.0.0.1", marionette_port):
+    if probe_port("127.0.0.1", marionette_port):
         existing = ProcessRegistry.any_pid()
         if existing is not None:
             session = MarionetteSession.get()
