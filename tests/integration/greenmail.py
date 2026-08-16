@@ -14,6 +14,7 @@ GREENMAIL_IMAGE = "docker.io/greenmail/standalone:2.1.0"
 IMAP_PORT = 3143
 SMTP_PORT = 3025
 REST_PORT = 8080
+CONTAINER_LABEL = "app=tb-marionette-mcp-autotest"
 
 
 @dataclass(frozen=True)
@@ -46,11 +47,41 @@ def wait_ready(endpoints: GreenmailEndpoints, timeout: float = 30.0) -> None:
     )
 
 
+def cleanup_stale_containers() -> None:
+    """Remove leftover autotest containers from prior crashed sessions.
+
+    Session-scoped teardown misses SIGKILL / segfault / OOM — stale
+    containers hold port bindings and break subsequent runs. Filter
+    is label-based (CONTAINER_LABEL) so unrelated user containers
+    are never touched.
+    """
+    result = subprocess.run(
+        [
+            "podman", "ps", "-a",
+            "--filter", f"label={CONTAINER_LABEL}",
+            "--format", "{{.Names}}",
+        ],
+        capture_output=True, text=True, check=False,
+    )
+    if result.returncode != 0:
+        return
+    for name in result.stdout.splitlines():
+        name = name.strip()
+        if not name:
+            continue
+        subprocess.run(
+            ["podman", "rm", "-f", name],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+
+
 def start_container(name: str) -> GreenmailEndpoints:
     """Start greenmail via podman. Caller is responsible for stop_container."""
+    cleanup_stale_containers()
     subprocess.run(
         [
             "podman", "run", "-d", "--rm", "--name", name,
+            "--label", CONTAINER_LABEL,
             "-p", f"{IMAP_PORT}:{IMAP_PORT}",
             "-p", f"{SMTP_PORT}:{SMTP_PORT}",
             "-p", f"{REST_PORT}:{REST_PORT}",
