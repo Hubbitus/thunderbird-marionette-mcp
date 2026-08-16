@@ -58,8 +58,7 @@ brew install --cask thunderbird
 
 ### Claude Desktop
 
-Add to `~/.config/Claude/claude_desktop_config.json` (or the platform
-equivalent):
+Add to `~/.config/Claude/claude_desktop_config.json` (or the platform equivalent):
 
 ```json
 {
@@ -95,8 +94,9 @@ Add to `opencode.json`:
 
 ## Quickstart
 
-End-to-end: launch Thunderbird, install a dev extension, click its button,
-capture a screenshot.
+Three worked examples: extension dev cycle, mail-reader navigation, and raw chrome-JS access. All tool calls below are JSON-RPC payloads exactly as an MCP client sends them.
+
+### A. Extension dev cycle — install, click, screenshot
 
 **1. Launch Thunderbird with a dedicated profile:**
 
@@ -110,7 +110,7 @@ capture a screenshot.
 {"tool": "extension_install", "arguments": {"xpi_path": "/abs/path/to/ext.xpi", "temporary": true}}
 ```
 
-**3. Find a chrome-scope button:**
+**3. Find a chrome-scope button (e.g. addon toolbar button):**
 
 ```json
 {"tool": "find_element", "arguments": {"strategy": "id", "selector": "button-appmenu", "context": "chrome"}}
@@ -119,7 +119,7 @@ capture a screenshot.
 **4. Click it:**
 
 ```json
-{"tool": "click", "arguments": {"element_id": "<element_id from step 3>"}}
+{"tool": "click", "arguments": {"element_id": "<element_id from step 3>", "context": "chrome"}}
 ```
 
 **5. Capture a screenshot:**
@@ -128,7 +128,69 @@ capture a screenshot.
 {"tool": "screenshot", "arguments": {"full": true}}
 ```
 
-The result contains base64-encoded PNG under `data_base64`.
+Result contains base64-encoded PNG under `data_base64`.
+
+**6. Reload after editing the source:**
+
+```json
+{"tool": "extension_reload", "arguments": {"addon_id": "yourext@example.com", "xpi_path": "/abs/path/to/ext.xpi"}}
+```
+
+**7. Trigger a WebExtension command shortcut directly (bypasses key dispatch — useful when TB chrome-XUL windows swallow WebDriver key events):**
+
+```json
+{"tool": "extension_trigger_command", "arguments": {"addon_id": "yourext@example.com", "command_name": "my-shortcut"}}
+```
+
+### B. Mail-reader — open Inbox, read first message
+
+Assumes an account is already configured in the profile.
+
+**1. Attach to a running Thunderbird** (or launch, as in A.1):
+
+```json
+{"tool": "thunderbird_status", "arguments": {}}
+```
+
+Any subsequent tool call auto-connects to `TB_MCP_MARIONETTE_PORT` if TB is already running with `--marionette`.
+
+**2. Drive the 3-pane via chrome-scope JS** — select INBOX and read the first message's subject. This is the stable pattern (documented in `tests/integration/test_mail_ui_navigation.py`); avoids XUL widget IDs that shift between TB releases:
+
+```json
+{
+  "tool": "execute_script",
+  "arguments": {
+    "context": "chrome",
+    "async_": true,
+    "timeout": 30.0,
+    "script": "let [resolve] = arguments; (async () => { let mainWin = Services.wm.getMostRecentWindow('mail:3pane'); let about3pane = mainWin.document.getElementById('tabmail').currentAbout3Pane; let acctMgr = Cc['@mozilla.org/messenger/account-manager;1'].getService(Ci.nsIMsgAccountManager); let inbox = acctMgr.allServers[0].rootFolder.getChildNamed('INBOX'); await about3pane.displayFolder(inbox.URI); await new Promise(r => about3pane.setTimeout(r, 200)); let threadTree = about3pane.document.getElementById('threadTree'); threadTree.selectedIndex = 0; let hdr = about3pane.gDBView.getMsgHdrAt(0); resolve({subject: hdr.mime2DecodedSubject, from: hdr.mime2DecodedAuthor}); })();"
+  }
+}
+```
+
+Response: `{"result": {"subject": "...", "from": "..."}}`.
+
+**3. Capture the message reader:**
+
+```json
+{"tool": "screenshot", "arguments": {"full": true}}
+```
+
+### C. Chrome-JS access — inspect installed accounts
+
+```json
+{
+  "tool": "execute_script",
+  "arguments": {
+    "context": "chrome",
+    "script": "let acctMgr = Cc['@mozilla.org/messenger/account-manager;1'].getService(Ci.nsIMsgAccountManager); return acctMgr.allServers.map(s => ({name: s.prettyName, type: s.type, host: s.hostName}));"
+  }
+}
+```
+
+Result: `[{"name": "user@example.com", "type": "imap", "host": "imap.example.com"}, ...]`.
+
+Chrome context exposes `Cc`, `Ci`, `Services`, `MailServices`, `ExtensionParent`, `ChromeUtils` — the same JSM/ESM surface TB's own UI uses. This is what makes Marionette-based automation strictly more capable than WebExtension-based approaches for UI-driving and internal introspection.
 
 ## Tool reference
 
@@ -180,9 +242,7 @@ Strategy enum: `id | css | xpath | link_text | partial_link_text | tag_name | cl
 | `send_keys`   | Send raw keys globally or to element | `keys`, `element_id=None`           |
 | `send_hotkey` | Parse & dispatch a chord             | `chord` (e.g. `"Ctrl+Shift+N"`)     |
 
-Chord grammar: `Mod (+ Mod)* + Key`. Modifiers: `Ctrl | Alt | Shift | Meta | Cmd`
-(Cmd = Meta). Named keys: `Enter | Escape | Tab | Space | Delete | Backspace |
-Up | Down | Left | Right | Home | End | PageUp | PageDown | Insert | F1..F12`.
+Chord grammar: `Mod (+ Mod)* + Key`. Modifiers: `Ctrl | Alt | Shift | Meta | Cmd` (Cmd = Meta). Named keys: `Enter | Escape | Tab | Space | Delete | Backspace | Up | Down | Left | Right | Home | End | PageUp | PageDown | Insert | F1..F12`.
 
 ### Scripts
 
@@ -217,19 +277,11 @@ Up | Down | Left | Right | Home | End | PageUp | PageDown | Insert | F1..F12`.
 
 ## Troubleshooting
 
-- **Port 2828 already in use** — another TB instance is running with Marionette.
-  Either terminate it (`thunderbird_terminate` or `pkill thunderbird`) or launch
-  on a different port via `marionette_port=2829`.
-- **TB does not respond** — check `thunderbird_status`; if `running=true` but
-  `connected=false`, TB started without `--marionette`. Kill and relaunch.
-- **Extension install fails** — for `temporary=false` the XPI must be signed by
-  Mozilla; for dev use `temporary=true` (unsigned, cleared on restart).
-- **CI without display** — wrap the pytest / launch command with
-  `xvfb-run -a ...` or set up `Xvfb` and export `DISPLAY=:0`.
-- **Attach to externally-started TB** — do not call `thunderbird_launch`. If TB
-  is already running on `TB_MCP_MARIONETTE_PORT`, any tool call auto-connects.
-  `get_marionette_log` returns `available=false` in that mode (we have no stderr
-  handle).
+- **Port 2828 already in use** — another TB instance is running with Marionette. Either terminate it (`thunderbird_terminate` or `pkill thunderbird`) or launch on a different port via `marionette_port=2829`.
+- **TB does not respond** — check `thunderbird_status`; if `running=true` but `connected=false`, TB started without `--marionette`. Kill and relaunch.
+- **Extension install fails** — for `temporary=false` the XPI must be signed by Mozilla; for dev use `temporary=true` (unsigned, cleared on restart).
+- **CI without display** — wrap the pytest / launch command with `xvfb-run -a ...` or set up `Xvfb` and export `DISPLAY=:0`.
+- **Attach to externally-started TB** — do not call `thunderbird_launch`. If TB is already running on `TB_MCP_MARIONETTE_PORT`, any tool call auto-connects. `get_marionette_log` returns `available=false` in that mode (we have no stderr handle).
 
 ## Development
 
