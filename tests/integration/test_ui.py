@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+
 import pytest
 
 from tb_marionette_mcp.session import MarionetteSession
@@ -70,15 +72,11 @@ async def test_switch_frame_and_default(session: MarionetteSession) -> None:
         strategy="css", selector="browser, iframe", context="chrome", timeout=5.0
     )
     if frames["element_ids"]:
-        try:
+        with contextlib.suppress(Exception):
             await switch_to_frame(element_id=frames["element_ids"][0])
-        except Exception:
-            pass
-    try:
+    # Content context may lack a current browsing context in chrome-only TB.
+    with contextlib.suppress(Exception):
         await switch_to_default()
-    except Exception:
-        # Content context may lack a current browsing context in chrome-only TB.
-        pass
 
 
 @pytest.mark.timeout(30)
@@ -162,10 +160,8 @@ async def test_click_roundtrips_through_chrome(session: MarionetteSession) -> No
     root = await find_element(
         strategy="css", selector=MAIN_WINDOW, context="chrome", timeout=5.0
     )
-    try:
+    with contextlib.suppress(ElementNotInteractableException, InvalidElementStateException):
         await click(element_id=root["element_id"], context="chrome")
-    except (ElementNotInteractableException, InvalidElementStateException):
-        pass
 
 
 @pytest.mark.timeout(30)
@@ -180,8 +176,6 @@ async def test_type_text_roundtrips_through_chrome(session: MarionetteSession) -
     root = await find_element(
         strategy="css", selector=MAIN_WINDOW, context="chrome", timeout=5.0
     )
-    try:
+    with contextlib.suppress(ElementNotInteractableException, InvalidElementStateException):
         await type_text(element_id=root["element_id"], text="x", clear=False,
                         context="chrome")
-    except (ElementNotInteractableException, InvalidElementStateException):
-        pass

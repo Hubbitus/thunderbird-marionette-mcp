@@ -199,7 +199,7 @@ def _seed_messages(endpoints: gm.GreenmailEndpoints) -> None:
 @pytest.fixture(scope="session")
 def imap_account(
     greenmail_service: gm.GreenmailEndpoints | None,
-    tb_process: subprocess.Popen[bytes],  # noqa: ARG001 — ordering only
+    tb_process: subprocess.Popen[bytes],
 ) -> gm.GreenmailEndpoints:
     """Seed messages after TB has started so an IMAP fetch will actually find them."""
     if greenmail_service is None:
