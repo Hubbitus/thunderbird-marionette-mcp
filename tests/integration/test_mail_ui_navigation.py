@@ -33,7 +33,9 @@ _FETCH_INBOX_JS = """
     let acctMgr = Cc['@mozilla.org/messenger/account-manager;1']
         .getService(Ci.nsIMsgAccountManager);
     let server = acctMgr.allServers[0];
-    server.password = 'test';
+    // Must match profile_prefs.py:password default ('password'); mismatch
+    // makes IMAP LOGIN fail silently and getNewMessages returns empty.
+    server.password = 'password';
     // Use the real msgWindow from the running 3-pane. Freshly-created
     // nsIMsgWindow instances lack a docShell binding, which makes IMAP
     // performExpand fail its internal QI on nsIMsgWindow.
@@ -65,32 +67,80 @@ _FETCH_INBOX_JS = """
 
     waitInboxDiscovered((inboxFolder) => {
         let inbox = inboxFolder.QueryInterface(Ci.nsIMsgImapMailFolder);
-        let fetchDeadline = Date.now() + 60000;
-        function pollDb() {
-            try {
-                let en = inbox.msgDatabase.enumerateMessages();
-                if (en.hasMoreElements()) {
-                    resolve({ok: true, total: inbox.getTotalMessages(false)});
-                    return;
-                }
-                if (Date.now() > fetchDeadline) {
-                    resolve({ok: false, reason: 'db empty after 60s'});
-                    return;
-                }
-                setTimeout(pollDb, 500);
-            } catch (e) {
-                resolve({ok: false, reason: 'poll: ' + e.message});
-            }
-        }
-        let listener = {
-            OnStartRunningUrl: function(url) {},
-            OnStopRunningUrl: function(url, status) { pollDb(); },
-            QueryInterface: ChromeUtils.generateQI(['nsIUrlListener']),
+        // Root of the flake: getNewMessages fires OnStopRunningUrl when the
+        // IMAP URL completes, but message commit into msgDatabase happens on
+        // a separate async pipeline (nsIImapMailFolderSink). Polling
+        // msgDatabase after OnStopRunningUrl races that commit. Subscribe
+        // to MailServices.mfn (nsIMsgFolderNotificationService) and wait
+        // for msgsClassified/msgAdded — fired AFTER db commit is durable.
+        let { MailServices } = ChromeUtils.importESModule(
+            'resource:///modules/MailServices.sys.mjs');
+
+        let deadlineMs = 30000;
+        let deadline = Date.now() + deadlineMs;
+        let done = false;
+
+        let folderListener = {
+            QueryInterface: ChromeUtils.generateQI(['nsIMsgFolderListener']),
+            msgsClassified: function(msgs, junkProcessed, traitsProcessed) {
+                finish({ok: true, via: 'msgsClassified',
+                        total: inbox.getTotalMessages(false)});
+            },
+            msgAdded: function(msg) {
+                // Backup path — msgsClassified always follows msgAdded, but
+                // if the classifier is skipped (e.g. no junk plugin) we
+                // still get msgAdded.
+                finish({ok: true, via: 'msgAdded',
+                        total: inbox.getTotalMessages(false)});
+            },
         };
+
+        function finish(payload) {
+            if (done) return;
+            done = true;
+            try {
+                MailServices.mfn.removeListener(folderListener);
+            } catch (e) {}
+            resolve(payload);
+        }
+
+        MailServices.mfn.addListener(
+            folderListener,
+            MailServices.mfn.msgsClassified | MailServices.mfn.msgAdded
+        );
+
+        // If the db is already populated from a prior fetch, short-circuit.
         try {
-            server.getNewMessages(inbox, msgWindow, listener);
+            let en = inbox.msgDatabase.enumerateMessages();
+            if (en.hasMoreElements()) {
+                finish({ok: true, via: 'preexisting',
+                        total: inbox.getTotalMessages(false)});
+                return;
+            }
+        } catch (e) {}
+
+        // Deadline fallback.
+        setTimeout(function () {
+            finish({ok: false, reason: 'no msgsClassified within ' +
+                    (deadlineMs / 1000) + 's'});
+        }, deadlineMs);
+
+        try {
+            server.getNewMessages(inbox, msgWindow, {
+                OnStartRunningUrl: function () {},
+                OnStopRunningUrl: function (url, status) {
+                    // Non-2xx nsresult => IMAP failure (AUTH / LIST / FETCH).
+                    // Only surface if we haven't already resolved via listener.
+                    if (!done && status !== 0) {
+                        finish({ok: false,
+                                reason: 'getNewMessages status=0x' +
+                                    (status >>> 0).toString(16)});
+                    }
+                },
+                QueryInterface: ChromeUtils.generateQI(['nsIUrlListener']),
+            });
         } catch (e) {
-            resolve({ok: false, reason: 'getNewMessages: ' + e.message});
+            finish({ok: false, reason: 'getNewMessages threw: ' + e.message});
         }
     });
 """

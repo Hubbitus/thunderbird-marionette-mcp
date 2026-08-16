@@ -128,11 +128,22 @@ def tb_process(
     ]
     if os.environ.get("TB_TEST_HEADLESS", "1") != "0":
         args.append("-headless")
-    stderr_fd, stderr_path = tempfile.mkstemp(prefix="tb-integ-stderr-", suffix=".log")
+    tmp_dir = Path(__file__).parents[2] / ".tmp"
+    tmp_dir.mkdir(exist_ok=True)
+    stderr_fd, stderr_path = tempfile.mkstemp(
+        prefix="tb-integ-stderr-", suffix=".log", dir=str(tmp_dir),
+    )
     popen = subprocess.Popen(
         args, stdout=subprocess.DEVNULL, stderr=stderr_fd,
     )
     os.close(stderr_fd)
+    pid_file = tmp_dir / "tb-integ.pid"
+    pid_file.write_text(f"{popen.pid}\n")
+    print(
+        f"\n[conftest] TB launched: PID={popen.pid} port={PORT} "
+        f"stderr={stderr_path} pidfile={pid_file}",
+        flush=True,
+    )
     deadline = time.monotonic() + 45
     while time.monotonic() < deadline:
         if probe_port("127.0.0.1", PORT):
@@ -155,6 +166,8 @@ def tb_process(
         popen.wait(timeout=10)
     except subprocess.TimeoutExpired:
         popen.kill()
+    with contextlib.suppress(FileNotFoundError):
+        pid_file.unlink()
 
 
 @pytest.fixture
@@ -195,6 +208,11 @@ def _seed_messages(endpoints: gm.GreenmailEndpoints) -> None:
         subject="Integration Fixture Message 2",
         body="second body",
     )
+    # Wait until greenmail commits both messages to the IMAP store.
+    # SMTP send is async wrt IMAP visibility on rootless podman coldstart —
+    # without this, TB's getNewMessages returns an empty INBOX and the
+    # test's `db empty after 60s` poll times out on the first run.
+    gm.wait_msg_count(endpoints, expected=2, timeout=30.0)
 
 
 @pytest.fixture(scope="session")

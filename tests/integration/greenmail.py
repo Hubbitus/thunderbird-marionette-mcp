@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import imaplib
 import logging
 import os
 import smtplib
@@ -137,6 +138,44 @@ def seed_message(
             smtp.send_message(msg)
     except (smtplib.SMTPException, OSError) as exc:
         raise RuntimeError(f"greenmail seed failed: {exc}") from exc
+
+
+def wait_msg_count(
+    endpoints: GreenmailEndpoints,
+    *,
+    expected: int,
+    user: str = "user@greenmail.local",
+    password: str = "password",
+    timeout: float = 30.0,
+    poll_interval: float = 0.3,
+) -> int:
+    """Poll IMAP INBOX until EXISTS >= expected. Returns actual count.
+
+    Bridges the SMTP-deliver → IMAP-store commit latency window that causes
+    `db empty after 60s` flake when TB polls INBOX before greenmail has
+    committed seeded messages to the mailbox. Transient connection errors
+    during startup / restart are swallowed until the deadline.
+    """
+    deadline = time.monotonic() + timeout
+    last = 0
+    while time.monotonic() < deadline:
+        try:
+            with imaplib.IMAP4(endpoints.host, endpoints.imap_port) as m:
+                m.login(user, password)
+                typ, data = m.select("INBOX")
+                if typ == "OK" and data and data[0]:
+                    last = int(data[0])
+                    if last >= expected:
+                        return last
+        except Exception:
+            # IMAP transient errors during startup / connection reset;
+            # deadline loop is the real stop condition.
+            pass
+        time.sleep(poll_interval)
+    raise RuntimeError(
+        f"greenmail INBOX did not reach {expected} msgs in {timeout}s; "
+        f"last={last}"
+    )
 
 
 def endpoints_from_env() -> GreenmailEndpoints:

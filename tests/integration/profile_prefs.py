@@ -10,6 +10,7 @@ def write_imap_account_prefs(
     *,
     email: str = "user@greenmail.local",
     username: str = "user@greenmail.local",
+    password: str = "password",
     imap_host: str = "127.0.0.1",
     imap_port: int = 3143,
     smtp_host: str = "127.0.0.1",
@@ -44,9 +45,14 @@ def write_imap_account_prefs(
         'user_pref("mail.server.server1.authMethod", 3);\n',  # cleartext
         f'user_pref("mail.server.server1.name", "{email}");\n',
         'user_pref("mail.server.server1.check_new_mail", false);\n',
-        'user_pref("mail.server.server1.download_on_biff", true);\n',
+        'user_pref("mail.server.server1.login_at_startup", false);\n',
+        'user_pref("mail.server.server1.download_on_biff", false);\n',
         'user_pref("mail.biff.play_sound", false);\n',
         'user_pref("mail.biff.show_alert", false);\n',
+        'user_pref("mail.biff.alert.enabled_actions", "");\n',
+        'user_pref("mail.check_all_imap_folders_for_new", false);\n',
+        # Suppress login-manager master-password prompt
+        'user_pref("signon.rememberSignons", true);\n',
         # SMTP
         'user_pref("mail.smtpservers", "smtp1");\n',
         f'user_pref("mail.smtpserver.smtp1.hostname", "{smtp_host}");\n',
