@@ -16,7 +16,7 @@ from tb_marionette_mcp.tools import (
 
 
 def build_server() -> MCPServer:
-    """Build and register all 30 tools into MCPServer."""
+    """Build and register all 31 tools into MCPServer."""
     server: MCPServer = MCPServer("tb-marionette-mcp")
 
     # Process tools (3)
@@ -24,11 +24,12 @@ def build_server() -> MCPServer:
     server.add_tool(process_tools.thunderbird_terminate)
     server.add_tool(process_tools.thunderbird_status)
 
-    # Extension tools (4)
+    # Extension tools (5)
     server.add_tool(extension_tools.extension_install)
     server.add_tool(extension_tools.extension_uninstall)
     server.add_tool(extension_tools.extension_reload)
     server.add_tool(extension_tools.extension_list)
+    server.add_tool(extension_tools.extension_trigger_command)
 
     # UI tools (13)
     server.add_tool(ui_tools.find_element)

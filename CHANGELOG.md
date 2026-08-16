@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- New MCP tool `extension_trigger_command(addon_id, command_name)` — fires a
+  WebExtension `commands.onCommand` listener directly by emitting the internal
+  `"command"` event via `ExtensionParent.GlobalManager`. Bypasses key dispatch
+  entirely, working around TB 153 chrome-XUL windows swallowing WebDriver key
+  events before they reach the shortcut manager
+  (see [#1](https://github.com/Hubbitus/thunderbird-marionette-mcp/issues/1)).
+  Total tool count: 30 → 31.
 - Integration test suite expanded from 5 to 25 tests, covering all 30 MCP tools
   at 100% line coverage. New per-tool-group files: `test_process.py`,
   `test_process_terminate.py`, `test_ui.py`, `test_keys.py`, `test_scripts.py`,

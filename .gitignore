@@ -12,3 +12,4 @@ build/
 htmlcov/
 .claude/
 no:cacheprovider/
+tests/fixtures/*.xpi

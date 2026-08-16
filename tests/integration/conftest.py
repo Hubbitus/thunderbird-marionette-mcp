@@ -14,8 +14,20 @@ import pytest
 
 from tb_marionette_mcp.process import _probe_port
 from tb_marionette_mcp.session import MarionetteSession
+from tests.fixtures import build_cmd_xpi, build_hello_xpi
 from tests.integration import greenmail as gm
 from tests.integration.profile_prefs import write_imap_account_prefs
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _build_xpis() -> None:
+    """Rebuild test XPIs before integration tests run.
+
+    XPIs are build artifacts (gitignored); their manifest source lives in
+    tests/fixtures/build_*_xpi.py and is the canonical definition.
+    """
+    build_hello_xpi.build()
+    build_cmd_xpi.build()
 
 PROFILE_DIR = Path(
     os.environ.get("TB_MCP_TEST_PROFILE")
