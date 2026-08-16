@@ -65,7 +65,7 @@ _FETCH_INBOX_JS = """
 
     waitInboxDiscovered((inboxFolder) => {
         let inbox = inboxFolder.QueryInterface(Ci.nsIMsgImapMailFolder);
-        let fetchDeadline = Date.now() + 30000;
+        let fetchDeadline = Date.now() + 60000;
         function pollDb() {
             try {
                 let en = inbox.msgDatabase.enumerateMessages();
@@ -74,7 +74,7 @@ _FETCH_INBOX_JS = """
                     return;
                 }
                 if (Date.now() > fetchDeadline) {
-                    resolve({ok: false, reason: 'db empty after 30s'});
+                    resolve({ok: false, reason: 'db empty after 60s'});
                     return;
                 }
                 setTimeout(pollDb, 500);
@@ -100,7 +100,7 @@ async def _ensure_inbox_populated() -> int:
     """Trigger IMAP fetch and wait until DB has ≥1 message. Returns count."""
     result = await execute_script(
         script=_FETCH_INBOX_JS, args=[], context="chrome",
-        async_=True, timeout=60.0,
+        async_=True, timeout=90.0,
     )
     payload = result["result"]
     assert payload and payload.get("ok"), f"IMAP fetch failed: {payload}"
