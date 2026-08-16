@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-16
+
 ### Added
 
 - New MCP tool `extension_trigger_command(addon_id, command_name)` — fires a
@@ -14,14 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `"command"` event via `ExtensionParent.GlobalManager`. Bypasses key dispatch
   entirely, working around TB 153 chrome-XUL windows swallowing WebDriver key
   events before they reach the shortcut manager
-  (see [#1](https://github.com/Hubbitus/thunderbird-marionette-mcp/issues/1)).
+  (fixes [#1](https://github.com/Hubbitus/thunderbird-marionette-mcp/issues/1)).
   Total tool count: 30 → 31.
-- Integration test suite expanded from 5 to 25 tests, covering all 30 MCP tools
+- Integration test suite expanded from 5 to 27 tests, covering all 31 MCP tools
   at 100% line coverage. New per-tool-group files: `test_process.py`,
   `test_process_terminate.py`, `test_ui.py`, `test_keys.py`, `test_scripts.py`,
-  `test_diagnostics.py`, `test_extensions.py`, plus an end-to-end
-  `test_mail_workflow.py` that drives a real IMAP fetch against a Greenmail
-  container.
+  `test_diagnostics.py`, `test_extensions.py`, plus end-to-end
+  `test_mail_workflow.py` (IMAP fetch against Greenmail) and
+  `test_mail_ui_navigation.py` (chrome-script + XUL click flavours of "select
+  Inbox, read first message").
 - Greenmail-backed fixtures (`tests/integration/greenmail.py`,
   `tests/integration/profile_prefs.py`): auto-starts a `greenmail/standalone:2.1.0`
   podman sidecar and seeds a pre-configured IMAP account into a wiped TB profile
@@ -31,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the mail-workflow test runs in every pipeline.
 - `pytest-timeout` dev-dep — every integration test is capped so a wedged TB
   cannot stall the whole suite.
+- Label-based orphan container reap: `start_container()` now runs
+  `cleanup_stale_containers()` first, filtering by
+  `app=tb-marionette-mcp-autotest`. Prevents port-binding conflicts after a
+  session dies from SIGKILL / segfault / OOM, without touching user's own
+  containers.
 
 ### Fixed
 
@@ -139,7 +147,8 @@ Initial public release.
 - `process.py`: stderr routed to `tempfile.mkstemp()` instead of
   `subprocess.PIPE` (PIPE streams are non-seekable → `get_marionette_log` failed)
 
-[Unreleased]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.4...v0.2.0
 [0.1.4]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.1...v0.1.2
