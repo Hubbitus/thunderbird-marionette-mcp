@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>tbmm content-context fixture</title></head>
+<body>
+  <h1 id="title">Content Context Test</h1>
+  <p id="static-text">hello content</p>
+  <button id="click-btn" onclick="document.getElementById('click-result').textContent='clicked'">Click me</button>
+  <span id="click-result">idle</span>
+  <input id="text-input" type="text" value="">
+  <div id="input-echo"></div>
+  <script>
+    document.getElementById('text-input').addEventListener('input', (e) => {
+      document.getElementById('input-echo').textContent = e.target.value;
+    });
+  </script>
+</body>
+</html>
