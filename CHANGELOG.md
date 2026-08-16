@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-08-17
+
 ### Added
 
 - `extension_trigger_command` integration test now runs against both MV2 and
@@ -15,12 +17,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Firefox-style `background.scripts` for both (no Chrome-style
   `service_worker`), and the `command` event fires the same `ExtensionParent`
   pathway.
+- New integration suite `test_content_context.py` (6 tests) exercising
+  `context="content"` variants of `click`, `type_text`, `get_text`,
+  `get_attribute`, `get_property`, `is_displayed` against a real HTML fixture
+  loaded into a synthesized 3-pane tab. Uses a `<tabbrowser>` shim to satisfy
+  TB 153's `TabManager.getTabBrowser()` returning null, and a `permanentKey`
+  stub so WebDriver `NavigableManager.getIdForBrowser` succeeds.
+- `tests/integration/greenmail.py::wait_msg_count()` — polls IMAP INBOX
+  `EXISTS` after SMTP seed to bridge greenmail's SMTP→IMAP commit latency
+  window (rootless podman coldstart). Fixture calls it with `expected=2`
+  after `_seed_messages`.
 
 ### Changed
 
 - `tests/fixtures/build_cmd_xpi.py`: `build()` now takes `mv: 2 | 3`, emits
   `ext_cmd_mv2.xpi` / `ext_cmd_mv3.xpi` with distinct addon ids
   (`cmd-test-mv{2,3}@tb-marionette-mcp`). Legacy `ext_cmd.xpi` removed.
+- `tests/integration/profile_prefs.py`: new `password` param (default
+  `"password"` matching greenmail default); disabled login-at-startup,
+  download-on-biff, biff alerts to prevent race between fixture-seeded IMAP
+  fetch and startup auto-fetch.
+
+### Fixed
+
+- `test_ui_select_inbox_and_read_first_message` was flaky with `db empty after
+  60s` on cold IMAP fetch. Root cause: JS polled `msgDatabase` before
+  `nsIImapMailFolderSink` finished the async commit pipeline. Fix: subscribe
+  to `MailServices.mfn::msgsClassified`/`msgAdded` — the event fires only
+  after the commit is durable. Deterministic (7.5s vs 60s+ timeout).
 
 ## [0.2.0] — 2026-08-16
 
@@ -176,7 +200,8 @@ Initial public release.
 - `process.py`: stderr routed to `tempfile.mkstemp()` instead of
   `subprocess.PIPE` (PIPE streams are non-seekable → `get_marionette_log` failed)
 
-[Unreleased]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.4...v0.2.0
 [0.1.4]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Hubbitus/thunderbird-marionette-mcp/compare/v0.1.2...v0.1.3
