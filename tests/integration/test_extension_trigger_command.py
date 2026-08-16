@@ -19,7 +19,6 @@ If the marker never shows, the tool did NOT actually reach the listener.
 from __future__ import annotations
 
 import time
-from pathlib import Path
 
 import pytest
 
@@ -30,15 +29,21 @@ from tb_marionette_mcp.tools.extension_tools import (
     extension_trigger_command,
     extension_uninstall,
 )
+from tests.fixtures.build_cmd_xpi import xpi_path
 
-XPI = Path(__file__).parents[1] / "fixtures" / "ext_cmd.xpi"
 MARKER = "tbmm-cmd-test fired:"
 
 
 @pytest.mark.timeout(60)
 @pytest.mark.asyncio
-async def test_trigger_command_fires_listener(session: MarionetteSession) -> None:
-    installed = await extension_install(xpi_path=str(XPI.resolve()), temporary=True)
+@pytest.mark.parametrize("manifest_version", [2, 3])
+async def test_trigger_command_fires_listener(
+    session: MarionetteSession, manifest_version: int,
+) -> None:
+    """Verify trigger works for both MV2 and MV3 event pages. TB uses
+    Firefox-style `background.scripts` for both (no service_worker)."""
+    xpi = xpi_path(manifest_version)
+    installed = await extension_install(xpi_path=str(xpi.resolve()), temporary=True)
     addon_id = installed["addon_id"]
     try:
         # Clear stale entries so we only see logs from this test.

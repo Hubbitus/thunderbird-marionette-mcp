@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `extension_trigger_command` integration test now runs against both MV2 and
+  MV3 event pages via `@pytest.mark.parametrize("manifest_version", [2, 3])`.
+  Confirms the tool works regardless of manifest version — TB keeps
+  Firefox-style `background.scripts` for both (no Chrome-style
+  `service_worker`), and the `command` event fires the same `ExtensionParent`
+  pathway.
+
+### Changed
+
+- `tests/fixtures/build_cmd_xpi.py`: `build()` now takes `mv: 2 | 3`, emits
+  `ext_cmd_mv2.xpi` / `ext_cmd_mv3.xpi` with distinct addon ids
+  (`cmd-test-mv{2,3}@tb-marionette-mcp`). Legacy `ext_cmd.xpi` removed.
+
 ## [0.2.0] — 2026-08-16
 
 ### Added

@@ -27,7 +27,8 @@ def _build_xpis() -> None:
     tests/fixtures/build_*_xpi.py and is the canonical definition.
     """
     build_hello_xpi.build()
-    build_cmd_xpi.build()
+    build_cmd_xpi.build(mv=2)
+    build_cmd_xpi.build(mv=3)
 
 PROFILE_DIR = Path(
     os.environ.get("TB_MCP_TEST_PROFILE")
