@@ -13,6 +13,7 @@ promoted to a non-default via the v0.2.0 `context` parameter.
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 
 import pytest
@@ -212,7 +213,7 @@ async def _content_context_cleanup():
     fixture teardown while the current window handle is a contentTab.
     """
     yield
-    try:
+    with contextlib.suppress(Exception):
         await execute_script(
             script=r"""
                 let mainWin = Services.wm.getMostRecentWindow('mail:3pane');
@@ -235,8 +236,6 @@ async def _content_context_cleanup():
             """,
             args=[], context="chrome", async_=False, timeout=5.0,
         )
-    except Exception:
-        pass
 
 
 @pytest.fixture
