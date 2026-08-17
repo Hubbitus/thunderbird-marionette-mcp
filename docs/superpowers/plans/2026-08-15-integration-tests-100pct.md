@@ -57,7 +57,7 @@
 **Files:**
 - Modify: `pyproject.toml` (dependency-groups.dev list)
 
-- [ ] **Step 1: Add pytest-timeout**
+- [x] **Step 1: Add pytest-timeout**
 
 Edit `pyproject.toml`, in the `[dependency-groups]` `dev = [...]` list, add after `pytest-cov>=5.0`:
 
@@ -65,17 +65,17 @@ Edit `pyproject.toml`, in the `[dependency-groups]` `dev = [...]` list, add afte
     "pytest-timeout>=2.3",
 ```
 
-- [ ] **Step 2: Sync**
+- [x] **Step 2: Sync**
 
 Run: `uv sync`
 Expected: `pytest-timeout` appears in `uv.lock`.
 
-- [ ] **Step 3: Verify usable**
+- [x] **Step 3: Verify usable**
 
 Run: `uv run python -c "import pytest_timeout; print(pytest_timeout.__version__)"`
 Expected: prints a version string.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add pyproject.toml uv.lock
@@ -89,7 +89,7 @@ git commit -m "test(integration): add pytest-timeout dev dep"
 **Files:**
 - Create: `tests/integration/greenmail.py`
 
-- [ ] **Step 1: Write the module**
+- [x] **Step 1: Write the module**
 
 Create `tests/integration/greenmail.py`:
 
@@ -218,12 +218,12 @@ def endpoints_from_env() -> GreenmailEndpoints:
     )
 ```
 
-- [ ] **Step 2: Test module imports**
+- [x] **Step 2: Test module imports**
 
 Run: `uv run python -c "from tests.integration.greenmail import start_container, seed_message; print('ok')"`
 Expected: `ok`
 
-- [ ] **Step 3: Manual smoke test (local, requires podman)**
+- [x] **Step 3: Manual smoke test (local, requires podman)**
 
 Run:
 ```bash
@@ -240,7 +240,7 @@ EOF
 ```
 Expected: `seeded ok, endpoints: GreenmailEndpoints(host='127.0.0.1', imap_port=3143, ...)`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/integration/greenmail.py
@@ -254,7 +254,7 @@ git commit -m "test(integration): add greenmail podman lifecycle + REST seed hel
 **Files:**
 - Create: `tests/integration/profile_prefs.py`
 
-- [ ] **Step 1: Write the generator**
+- [x] **Step 1: Write the generator**
 
 Create `tests/integration/profile_prefs.py`:
 
@@ -318,7 +318,7 @@ def write_imap_account_prefs(
         fh.writelines(lines)
 ```
 
-- [ ] **Step 2: Test import + generation**
+- [x] **Step 2: Test import + generation**
 
 Run:
 ```bash
@@ -337,7 +337,7 @@ EOF
 ```
 Expected: `ok`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/integration/profile_prefs.py
@@ -351,7 +351,7 @@ git commit -m "test(integration): add prefs.js generator for IMAP account"
 **Files:**
 - Modify: `tests/integration/conftest.py`
 
-- [ ] **Step 1: Rewrite conftest**
+- [x] **Step 1: Rewrite conftest**
 
 Replace the entire contents of `tests/integration/conftest.py` with:
 
@@ -496,24 +496,24 @@ def imap_account(greenmail_service: gm.GreenmailEndpoints) -> gm.GreenmailEndpoi
     return greenmail_service
 ```
 
-- [ ] **Step 2: Ensure `tests` is importable as package**
+- [x] **Step 2: Ensure `tests` is importable as package**
 
 Check `tests/__init__.py` and `tests/integration/__init__.py` both exist (both should be empty). If missing, create empty files.
 
 Run: `ls tests/__init__.py tests/integration/__init__.py`
 Expected: both listed.
 
-- [ ] **Step 3: Verify existing integration tests still pass locally**
+- [x] **Step 3: Verify existing integration tests still pass locally**
 
 Run: `TB_TEST_HEADLESS=1 uv run pytest tests/integration -q --timeout=90`
 Expected: same tests as before all pass; greenmail container starts + stops.
 
-- [ ] **Step 4: Verify unit tests still pass**
+- [x] **Step 4: Verify unit tests still pass**
 
 Run: `uv run pytest tests/unit -q`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/integration/conftest.py tests/__init__.py tests/integration/__init__.py
@@ -527,7 +527,7 @@ git commit -m "test(integration): refactor conftest with greenmail + IMAP profil
 **Files:**
 - Create: `tests/integration/_helpers.py`
 
-- [ ] **Step 1: Write helpers**
+- [x] **Step 1: Write helpers**
 
 Create `tests/integration/_helpers.py`:
 
@@ -567,12 +567,12 @@ async def close_extra_windows(session: MarionetteSession) -> None:
     await session.call(_close)
 ```
 
-- [ ] **Step 2: Verify import**
+- [x] **Step 2: Verify import**
 
 Run: `uv run python -c "from tests.integration._helpers import close_extra_windows; print('ok')"`
 Expected: `ok`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/integration/_helpers.py
@@ -586,7 +586,7 @@ git commit -m "test(integration): add _helpers.close_extra_windows"
 **Files:**
 - Modify: `tests/integration/test_process.py`
 
-- [ ] **Step 1: Rewrite file**
+- [x] **Step 1: Rewrite file**
 
 Replace `tests/integration/test_process.py`:
 
@@ -626,12 +626,12 @@ async def test_launch_idempotent_when_already_running(
     assert result["connected"] is True
 ```
 
-- [ ] **Step 2: Run test**
+- [x] **Step 2: Run test**
 
 Run: `TB_TEST_HEADLESS=1 uv run pytest tests/integration/test_process.py -v --timeout=90`
 Expected: 2 tests pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/integration/test_process.py
@@ -645,7 +645,7 @@ git commit -m "test(integration): cover thunderbird_launch idempotency"
 **Files:**
 - Create: `tests/integration/test_process_terminate.py`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 Create `tests/integration/test_process_terminate.py`:
 
@@ -723,17 +723,17 @@ async def test_terminate_kills_pid() -> None:
         shutil.rmtree(tmp_profile, ignore_errors=True)
 ```
 
-- [ ] **Step 2: Check ProcessRegistry.register signature**
+- [x] **Step 2: Check ProcessRegistry.register signature**
 
 Run: `grep -n "def register" src/tb_marionette_mcp/process.py`
 Expected: `register(cls, pid, port)` or similar. If signature differs, adjust the `ProcessRegistry.register(popen.pid, port)` call in the test to match. If no such method exists, remove the register call and pass `pid=popen.pid` explicitly (which the test already does).
 
-- [ ] **Step 3: Run test**
+- [x] **Step 3: Run test**
 
 Run: `TB_TEST_HEADLESS=1 uv run pytest tests/integration/test_process_terminate.py -v --timeout=120`
 Expected: 1 test passes. Takes ~10-15s.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/integration/test_process_terminate.py
@@ -747,7 +747,7 @@ git commit -m "test(integration): cover thunderbird_terminate with dedicated 2nd
 **Files:**
 - Modify: `tests/integration/test_ui.py`
 
-- [ ] **Step 1: Rewrite file**
+- [x] **Step 1: Rewrite file**
 
 Replace `tests/integration/test_ui.py`:
 
@@ -911,12 +911,12 @@ async def test_wait_for_element_finds_existing(session: MarionetteSession) -> No
     assert result["element_id"]
 ```
 
-- [ ] **Step 2: Run**
+- [x] **Step 2: Run**
 
 Run: `TB_TEST_HEADLESS=1 uv run pytest tests/integration/test_ui.py -v --timeout=120`
 Expected: 12 tests pass. Some may `skip` if greenmail-configured profile hides the folder tree pre-IMAP-check; if a specific selector fails, inspect via a manual TB run and update the selector to the actual TB 153 messenger.xhtml element.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/integration/test_ui.py
@@ -930,7 +930,7 @@ git commit -m "test(integration): cover all 12 UI tools"
 **Files:**
 - Create: `tests/integration/test_keys.py`
 
-- [ ] **Step 1: Write tests**
+- [x] **Step 1: Write tests**
 
 Create `tests/integration/test_keys.py`:
 
@@ -984,17 +984,17 @@ async def test_send_hotkey_opens_compose(session: MarionetteSession) -> None:
         await close_extra_windows(session)
 ```
 
-- [ ] **Step 2: Check send_hotkey signature**
+- [x] **Step 2: Check send_hotkey signature**
 
 Run: `grep -n "async def send_hotkey" src/tb_marionette_mcp/tools/key_tools.py`
 Expected: signature confirmed. If the parameter is named differently (e.g. `hotkey` or `combo` instead of `chord`), update the test call to match.
 
-- [ ] **Step 3: Run**
+- [x] **Step 3: Run**
 
 Run: `TB_TEST_HEADLESS=1 uv run pytest tests/integration/test_keys.py -v --timeout=180`
 Expected: 2 tests pass.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/integration/test_keys.py
@@ -1008,7 +1008,7 @@ git commit -m "test(integration): cover send_keys and send_hotkey"
 **Files:**
 - Modify: `tests/integration/test_scripts.py`
 
-- [ ] **Step 1: Rewrite file**
+- [x] **Step 1: Rewrite file**
 
 Replace `tests/integration/test_scripts.py`:
 
@@ -1075,17 +1075,17 @@ async def test_wait_for_condition_flips_true(
     assert result["result"] is True
 ```
 
-- [ ] **Step 2: Check wait_for_condition signature**
+- [x] **Step 2: Check wait_for_condition signature**
 
 Run: `grep -n "async def wait_for_condition" src/tb_marionette_mcp/tools/script_tools.py`
 Expected: confirm parameter names. If `args` is not a parameter (script is arg-less), remove `args=[]` from the calls.
 
-- [ ] **Step 3: Run**
+- [x] **Step 3: Run**
 
 Run: `TB_TEST_HEADLESS=1 uv run pytest tests/integration/test_scripts.py -v --timeout=120`
 Expected: 4 tests pass.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/integration/test_scripts.py
@@ -1099,7 +1099,7 @@ git commit -m "test(integration): expand execute_script + wait_for_condition cov
 **Files:**
 - Create: `tests/integration/test_diagnostics.py`
 
-- [ ] **Step 1: Write tests**
+- [x] **Step 1: Write tests**
 
 Create `tests/integration/test_diagnostics.py`:
 
@@ -1174,7 +1174,7 @@ async def test_get_marionette_log_reads_stderr(session: MarionetteSession) -> No
     assert isinstance(result["log"], str)
 ```
 
-- [ ] **Step 2: Check return-value keys**
+- [x] **Step 2: Check return-value keys**
 
 Run:
 ```bash
@@ -1182,12 +1182,12 @@ grep -nE "return \{" src/tb_marionette_mcp/tools/diagnostic_tools.py
 ```
 Compare returned dict keys with the assertions (`image_base64`, `page_source`, `url`, `title`, `logs`, `log`). If any key differs (e.g. `screenshot_b64` or `content` instead of `page_source`), update the test assertion to match the actual key name.
 
-- [ ] **Step 3: Run**
+- [x] **Step 3: Run**
 
 Run: `TB_TEST_HEADLESS=1 uv run pytest tests/integration/test_diagnostics.py -v --timeout=120`
 Expected: 6 tests pass.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/integration/test_diagnostics.py
@@ -1201,7 +1201,7 @@ git commit -m "test(integration): cover 6 diagnostic tools live"
 **Files:**
 - Modify: `tests/integration/test_extensions.py`
 
-- [ ] **Step 1: Rewrite file**
+- [x] **Step 1: Rewrite file**
 
 Replace `tests/integration/test_extensions.py`:
 
@@ -1244,17 +1244,17 @@ async def test_install_list_reload_uninstall(session: MarionetteSession) -> None
     assert not any(a["id"] == addon_id for a in listing_after)
 ```
 
-- [ ] **Step 2: Verify extension_reload return shape**
+- [x] **Step 2: Verify extension_reload return shape**
 
 Run: `grep -nA5 "async def extension_reload" src/tb_marionette_mcp/tools/extension_tools.py`
 Expected: check what keys the reload function returns. Update the assertion to match (`addon_id`, `reloaded`, or whatever it returns).
 
-- [ ] **Step 3: Run**
+- [x] **Step 3: Run**
 
 Run: `TB_TEST_HEADLESS=1 uv run pytest tests/integration/test_extensions.py -v --timeout=120`
 Expected: 1 combined test passes (~10s).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/integration/test_extensions.py
@@ -1268,7 +1268,7 @@ git commit -m "test(integration): cover extension_reload"
 **Files:**
 - Create: `tests/integration/test_mail_workflow.py`
 
-- [ ] **Step 1: Write test**
+- [x] **Step 1: Write test**
 
 Create `tests/integration/test_mail_workflow.py`:
 
@@ -1353,14 +1353,14 @@ async def test_imap_account_visible_and_message_readable(
     await close_extra_windows(session)
 ```
 
-- [ ] **Step 2: Run**
+- [x] **Step 2: Run**
 
 Run: `TB_TEST_HEADLESS=1 uv run pytest tests/integration/test_mail_workflow.py -v --timeout=180`
 Expected: 1 test passes. Takes ~15-30s (IMAP round-trip).
 
 If the test fails with `mail.server.server1.userName` auth error, adjust `profile_prefs.py`: greenmail 2.x with `GREENMAIL_OPTS=-Dgreenmail.auth.disabled` accepts any credentials; make sure the pref values match `user@greenmail.local` / no password required. If TB stalls waiting for password, add `user_pref("signon.rememberSignons", false);` and pre-populate a signon in `logins.json` (out-of-scope-refinement — try the auth-disabled path first).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/integration/test_mail_workflow.py
@@ -1374,7 +1374,7 @@ git commit -m "test(integration): end-to-end IMAP account + message readable"
 **Files:**
 - Modify: `.github/workflows/ci.yml`
 
-- [ ] **Step 1: Add services block to the `test` job**
+- [x] **Step 1: Add services block to the `test` job**
 
 Between `runs-on: ubuntu-latest` and `container: fedora:44`, add a `services:` block. Note: `services:` at the job level runs each container on the runner host; because the job's own container (`fedora:44`) shares the runner's network namespace, `localhost:3143` reaches greenmail.
 
@@ -1401,7 +1401,7 @@ jobs:
           --health-retries 20
 ```
 
-- [ ] **Step 2: Add TB_INTEGRATION_GM_EXTERNAL env to Tests step**
+- [x] **Step 2: Add TB_INTEGRATION_GM_EXTERNAL env to Tests step**
 
 In the same file, in the `Tests` step, change the `env:` block to:
 
@@ -1421,11 +1421,11 @@ In the same file, in the `Tests` step, change the `env:` block to:
 
 The `export TB_INTEGRATION_GM_EXTERNAL=1` line inside the sudo shell is required because env vars set in the `env:` block are not inherited through `sudo` (same reason `GITHUB_PATH` is unbound — see memory).
 
-- [ ] **Step 3: Local-verify with act (optional)**
+- [x] **Step 3: Local-verify with act (optional)**
 
 Skip if `act` not installed. `act` cannot easily emulate `services:` blocks; validation happens in the GHA run itself.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .github/workflows/ci.yml
@@ -1439,12 +1439,12 @@ git commit -m "ci: add greenmail services block for integration tests"
 **Files:**
 - Modify: `run.ci.local.sh`
 
-- [ ] **Step 1: Inspect current script**
+- [x] **Step 1: Inspect current script**
 
 Run: `cat run.ci.local.sh`
 Read the whole script; find where pytest is invoked.
 
-- [ ] **Step 2: Add greenmail start/stop around pytest invocation**
+- [x] **Step 2: Add greenmail start/stop around pytest invocation**
 
 Before the pytest invocation inside the container, add:
 
@@ -1464,12 +1464,12 @@ done
 
 Ensure the existing `trap` for `podman unshare chown` is merged into the new trap above (both cleanups must fire) — see the memory note about rootless podman uid remap.
 
-- [ ] **Step 3: Run script**
+- [x] **Step 3: Run script**
 
 Run: `./run.ci.local.sh`
 Expected: greenmail starts, tests run (all 30+ tools), greenmail is killed on exit, workspace ownership restored.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add run.ci.local.sh
@@ -1483,11 +1483,11 @@ git commit -m "ci: run.ci.local.sh starts greenmail before pytest"
 **Files:**
 - Modify: `run.tests.sh`
 
-- [ ] **Step 1: Inspect current script**
+- [x] **Step 1: Inspect current script**
 
 Run: `cat run.tests.sh`
 
-- [ ] **Step 2: Add opt-in greenmail block**
+- [x] **Step 2: Add opt-in greenmail block**
 
 Near the top of the script (after existing option parsing), add:
 
@@ -1506,17 +1506,17 @@ if [ "$GREENMAIL_ENABLED" = "1" ]; then
 fi
 ```
 
-- [ ] **Step 3: Run local (with greenmail)**
+- [x] **Step 3: Run local (with greenmail)**
 
 Run: `TB_INTEGRATION_IMAP=1 ./run.tests.sh`
 Expected: greenmail starts, tests run, container killed on exit.
 
-- [ ] **Step 4: Run local (without greenmail — most tests should still pass)**
+- [x] **Step 4: Run local (without greenmail — most tests should still pass)**
 
 Run: `./run.tests.sh`
 Expected: tests dependent on greenmail (mail_workflow) fail cleanly with a connection refused; others pass. This is acceptable — the CI path always has greenmail.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add run.tests.sh
@@ -1530,7 +1530,7 @@ git commit -m "ci: run.tests.sh gains TB_INTEGRATION_IMAP toggle for greenmail"
 **Files:**
 - Modify: `CHANGELOG.md`
 
-- [ ] **Step 1: Add Unreleased entry**
+- [x] **Step 1: Add Unreleased entry**
 
 Under `## [Unreleased]` (currently empty), add:
 
@@ -1548,7 +1548,7 @@ Under `## [Unreleased]` (currently empty), add:
   `@pytest.mark.timeout` to prevent CI hangs.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add CHANGELOG.md
@@ -1562,17 +1562,17 @@ git commit -m "docs: CHANGELOG entry for integration test 100% coverage"
 **Files:**
 - None (verification only)
 
-- [ ] **Step 1: Full local run**
+- [x] **Step 1: Full local run**
 
 Run: `TB_TEST_HEADLESS=1 TB_INTEGRATION_IMAP=1 ./run.tests.sh` (or the equivalent full local runner)
 Expected: all unit tests + all integration tests pass; total time under 5 min.
 
-- [ ] **Step 2: Coverage check**
+- [x] **Step 2: Coverage check**
 
 Run: `uv run pytest --cov=src --cov-report=term-missing 2>&1 | tail -30`
 Expected: `src/tb_marionette_mcp/**` at 100%. If integration tests reduced unit coverage of any file, add a targeted unit test — do NOT lower the coverage threshold.
 
-- [ ] **Step 3: Tool coverage audit**
+- [x] **Step 3: Tool coverage audit**
 
 Run:
 ```bash
@@ -1599,7 +1599,7 @@ EOF
 ```
 Expected: `missing: []` and `tools total: 30`, `covered in integration: 30`.
 
-- [ ] **Step 4: Push and wait for CI**
+- [x] **Step 4: Push and wait for CI**
 
 Run:
 ```bash
@@ -1608,7 +1608,7 @@ git push origin main
 Then monitor: `gh run watch --exit-status`
 Expected: CI job "test" passes.
 
-- [ ] **Step 5: Report done**
+- [x] **Step 5: Report done**
 
 If CI green, task complete. Coordinator reports the branch is ready to tag `v0.2.0` (subject to a separate release request from the user — do not tag automatically).
 
